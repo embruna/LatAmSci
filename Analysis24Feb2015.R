@@ -1,0 +1,356 @@
+
+#R CODE FOR IMPORTING, MANIPULATING, AND ANALYZING THE DATASETS USED IN: 
+#install.packages("refnet_0.6.tar.gz", repos=NULL, type="source")
+#setwd("/Users/emiliobruna/Desktop/LATAM Data Updates")
+#setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAm Science (Bruna & Hahn)/refnet")
+##  Set this to wherever you unzipped the archive folders (not /src):
+rm(list=ls())
+
+
+#detach(package:refnet, unload=TRUE)
+#remove.packages("refnet")
+library(maptools)
+library(reshape2)
+library(rworldmap)
+library(RecordLinkage)
+library(igraph)
+library(network)
+library(sna)
+library(Hmisc)
+library(refnet)
+library(ggplot2)
+require(refnet)
+
+
+
+####################
+####################
+###THIS SECTION IMPORTS WORLD BANK SOCIOECONOMIC DATA. EACH COUNTRY HAS A UNIQUE 3 LETTER CODE
+###In world bank data each country has a code. We imported their entire dataset, need to select just countries of in our study:
+#ARG BOL BRA CHL COL CRI CUB ECU SLV GTM HND MEX NIC PAN PRY PER URY VEN
+####################
+####################
+setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAm Science (Bruna & Hahn)/SocioEconomic Data/GDP_WorldBank_Global") #These data are in a different Folder
+
+#Importing the GDP Data. These data are for all countries x years, so will need to select just the years of interest and the countries in the analyses
+GDP<-read.csv("GDP.csv", dec=".", header = TRUE, sep = ",", check.names=FALSE)
+
+GDP<-GDP[GDP$Country.Code=="ARG" | GDP$Country.Code=="BOL"| GDP$Country.Code=="BRA" | GDP$Country.Code=="CHL" | GDP$Country.Code=="COL"
+         | GDP$Country.Code=="CRI" | GDP$Country.Code=="CUB" | GDP$Country.Code=="ECU" | GDP$Country.Code=="SLV" | GDP$Country.Code=="GTM" 
+         | GDP$Country.Code=="HND" | GDP$Country.Code=="MEX" | GDP$Country.Code=="NIC" | GDP$Country.Code=="PAN" | GDP$Country.Code=="PRY" 
+         | GDP$Country.Code=="PER" | GDP$Country.Code=="URY" | GDP$Country.Code=="VEN",]
+#This deletes everything all years prior to 1986 - left 5 years before start of publications record to test for a lag in GDP in productivity
+GDP<-GDP[, -(5:30)]
+summary(GDP)
+
+
+#Importing the PopSize Data. These data are for all countries x years, so will need to select just the years of interest and the countries in the analyses
+setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAm Science (Bruna & Hahn)/SocioEconomic Data/worldBank_PopSize") #These data are in a different Folder
+PopSize<-read.csv("PopSize.csv", dec=".", header = TRUE, sep = ",", check.names=FALSE)
+
+PopSize<-PopSize[PopSize$Country.Code=="ARG" | PopSize$Country.Code=="BOL"| PopSize$Country.Code=="BRA" | PopSize$Country.Code=="CHL" | PopSize$Country.Code=="COL"
+                 | PopSize$Country.Code=="CRI" | PopSize$Country.Code=="CUB" | PopSize$Country.Code=="ECU" | PopSize$Country.Code=="SLV" | PopSize$Country.Code=="GTM" 
+                 | PopSize$Country.Code=="HND" | PopSize$Country.Code=="MEX" | PopSize$Country.Code=="NIC" | PopSize$Country.Code=="PAN" | PopSize$Country.Code=="PRY" 
+                 | PopSize$Country.Code=="PER" | PopSize$Country.Code=="URY" | PopSize$Country.Code=="VEN",]
+PopSize<-PopSize[, -(5:30)]
+summary(PopSize)
+
+
+###Can we get HDI?
+
+
+
+####################
+####################
+###THIS SECTION IMPORTS PUBLICATIONS DATA from 2001-2014. 
+###THE DATA HAVE TO BE IN THE REFNET FOLDER, SO THE WORKING DIRECTORY IS CHANGED BELOW
+####################
+####################
+
+setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAm Science (Bruna & Hahn)/refnet")
+
+##	Let's read in single files, though we can specify a directory and 
+##		set the dir=TRUE flag and read in an entire directory of files.
+##		If the filename_root argument is not "" then it is used to create
+##		the root filenames for CSV output:
+ecuador_references <- read_references("data/Ecuador_2001-2014.txt", dir=FALSE, filename_root="output/ecuador")
+bolivia_references <- read_references("data/Bolivia_2001-2014.txt", dir=FALSE, filename_root="output/bolivia")
+argentina_references <- read_references("data/Argentina_2001-2014.txt", dir=FALSE, filename_root="output/argentina")
+brazil_references <- read_references("data/Brazil_2001-2014.txt", dir=FALSE, filename_root="output/brazil")
+chile_references <- read_references("data/Chile_2001-2014.txt", dir=FALSE, filename_root="output/chile")
+colombia_references <- read_references("data/Colombia_2001-2014.txt", dir=FALSE, filename_root="output/colombia")
+costarica_references <- read_references("data/Costa Rica_2001-2014.txt", dir=FALSE, filename_root="output/costarica")
+cuba_references <- read_references("data/Cuba_2001-2014.txt", dir=FALSE, filename_root="output/cuba")
+elsalvador_references <- read_references("data/El Salvador_2001-2014.txt", dir=FALSE, filename_root="output/elsalvador")
+guatemala_references <- read_references("data/Guatemala_2001-2014.txt", dir=FALSE, filename_root="output/guatemala")
+honduras_references <- read_references("data/Honduras_2001-2014.txt", dir=FALSE, filename_root="output/honduras")
+mexico_references <- read_references("data/Mexico_2001-2014.txt", dir=FALSE, filename_root="output/mexico")
+nicaragua_references <- read_references("data/Nicaragua_2001-2014.txt", dir=FALSE, filename_root="output/nicaragua")
+panama_references <- read_references("data/Panama_2001-2014.txt", dir=FALSE, filename_root="output/panama")
+paraguay_references <- read_references("data/Paraguay_2001-2014.txt", dir=FALSE, filename_root="output/paraguay")
+peru_references <- read_references("data/Peru_2001-2014.txt", dir=FALSE, filename_root="output/peru")
+uruguay_references <- read_references("data/Uruguay_2001-2014.txt", dir=FALSE, filename_root="output/uruguay")
+venezuela_references <- read_references("data/Venezuela_2001-2014.txt", dir=FALSE, filename_root="output/venezuela")
+
+allnations<-rbind(ecuador_references, bolivia_references, argentina_references, brazil_references, chile_references, 
+                  colombia_references, costarica_references,cuba_references, elsalvador_references,guatemala_references, 
+                  honduras_references, mexico_references, nicaragua_references,panama_references, paraguay_references, 
+                  peru_references, uruguay_references, venezuela_references)
+
+
+#Extract only thro country and year of each publication to plot them over time
+output_by_year<-allnations[,c("filename","PY")]
+#Change the names of the columns
+colnames(output_by_year) <- c("country", "year")
+
+#need to clean up this dataframe
+#remove the extraneous characters ("\n" in column 'country' and "data/", "_2001-2014.txt"in column filename 'year')
+wordstoremove <- c("\n", "data/", "_2001-2014.txt")
+
+output_by_year <- as.data.frame(sapply(output_by_year, function(x) 
+  gsub(paste(wordstoremove, collapse = '|'), '', x)))
+
+
+#Now start doing so me tabulating and joining with data from previous ytears
+#table of the number of papers by each country in each year (2001-2014)
+yearly_prod<-table(output_by_year$country, output_by_year$year)
+yearly_prod<-as.data.frame(yearly_prod, stringsAsFactors=TRUE)
+colnames(yearly_prod) <- c("country", "year", "pubs")
+
+
+####################
+####################
+###THIS SECTION IMPORTS PUBLICATIONS DATA from 1991-2000. 
+###THE DATA ARE **NOT** in REFNET FOLDER, SO THE WORKING DIRECTORY IS CHANGED BELOW THEN CHANGED BACK
+####################
+####################
+
+setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAm Science (Bruna & Hahn)") #These data are in a different Folder
+early_data<-read.csv("productivity_data_1991-2000.csv", dec=".", header = TRUE, sep = ",", check.names=FALSE)
+setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAm Science (Bruna & Hahn)/refnet") #Go back to original WD
+as.data.frame(early_data)
+
+####################
+####################
+###Now Bind the 1991-2000 and 2001-2014 DATA together
+####################
+####################
+
+allnations<-rbind(early_data, yearly_prod)
+allnations$year<-as.numeric(allnations$year)
+allnations<-allnations[order(allnations$country, allnations$year),] 
+
+#Add a column with the World Bank
+allnations$Country.Code<- NA
+
+allnations$Country.Code[allnations$country == "Argentina"]  <-"ARG"
+allnations$Country.Code[allnations$country == "Bolivia"]  <- "BOL"
+allnations$Country.Code[allnations$country == "Brazil"]  <- "BRA"
+allnations$Country.Code[allnations$country == "Chile"]  <- "CHL"
+allnations$Country.Code[allnations$country == "Costa Rica"]  <-"CRI"
+allnations$Country.Code[allnations$country == "Cuba"]  <- "CUB"
+allnations$Country.Code[allnations$country == "Ecuador"]  <-"ECU"
+allnations$Country.Code[allnations$country == "El Salvador"]  <-"SLV"
+allnations$Country.Code[allnations$country == "Guatemala"]  <-"GTM"
+allnations$Country.Code[allnations$country == "Honduras"]  <-"HND"
+allnations$Country.Code[allnations$country == "Mexico"]  <-"MEX"
+allnations$Country.Code[allnations$country == "Nicaragua"]  <-"NIC"
+allnations$Country.Code[allnations$country == "Panama"]  <-"PAN"
+allnations$Country.Code[allnations$country == "Paraguay"]  <-"PRY"
+allnations$Country.Code[allnations$country == "Peru"]  <-"PER"
+allnations$Country.Code[allnations$country == "Uruguay"]  <-"URY"
+allnations$Country.Code[allnations$country == "Venezuela"]  <-"VEN"
+
+
+###Create a dummy dataframe with so you can add the 1986-1990 Population data to it (there are no publication data for this period)
+DUMMY<-allnations[allnations$year<1996,]
+DUMMY$pubs<-NA
+DUMMY$year[DUMMY$year=="1991"]<-"1986"
+DUMMY$year[DUMMY$year=="1992"]<-"1987"
+DUMMY$year[DUMMY$year=="1993"]<-"1988"
+DUMMY$year[DUMMY$year=="1994"]<-"1989"
+DUMMY$year[DUMMY$year=="1995"]<-"1990"
+#Now bind that frame to the one with the data from 1991-2014
+allnations_86to14<-rbind(DUMMY, allnations)
+#this sorts them by year and country
+allnations_86to14<-allnations_86to14[order(allnations_86to14$country, allnations_86to14$year),] 
+
+
+#some figures using ggplot2
+#Fig1 is line chart of productivity per year per country
+Fig1<-allnations
+qplot(year, pubs, data = Fig1, color = country, main = "number of articles produced from 1991-2014")
+
+qplot(year, pubs, data = Fig1, geom = c("point", "line"), colour = country)
+
+#Line chart of results, no points, using ggplot
+MyFig<-qplot(year, pubs, data = Fig1, color = country, geom = "line",
+      colour = country,
+      main = "number of articles per country, 1991-2014")
+
+#these removes the gray background and gridlines from the plot
+MyFig + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+                                 panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+
+
+ggplot(Fig1, aes(x=year, y = pubs, colour = country))+geom_point(color="firebrick")+stat_smooth()
+#need to put data in long form
+#Fig1<- dcast(Fig1, Fig1$country ~ Fig1$year, value.var="pubs")
+#names(Fig1)[names(Fig1)=="Fig1$country"] <- "country"
+#str(Fig1)
+#summary(Fig1)
+
+
+
+
+library(rworldmap)
+#get coarse resolution world from rworldmap
+sPDF <- getMap()  
+#mapCountries using the 'continent' attribute  
+mapCountryData(sPDF, nameColumnToPlot='continent')
+mapCountryData(sPDF, nameColumnToPlot='REGION')
+
+
+
+
+
+
+
+
+
+
+
+
+###########
+output <- read_authors(ecuador_references, filename_root="output/ecuador")
+ecuador_authors <- output$authors
+ecuador_authors__references <- output$authors__references
+
+
+
+##	After reading the files in you can check the ecuador_authors.csv file
+##		and by hand in Excel, using the AU_ID_Dupe and Similarity fields,
+##		merge any author records that represent the same author.  After doing
+##		so you can read these back into R using the following, or if you're
+##		not starting from scratch above:
+
+###	Can be read back in without importing from the following three commands:
+#ecuador_references <- read.csv("output/ecuador_references.csv", as.is=TRUE)
+#ecuador_authors <- read.csv("output/ecuador_authors.csv", as.is=TRUE)
+#ecuador_authors__references <- read.csv("output/ecuador_authors__references.csv", as.is=TRUE)
+
+##	Process Brazilian records:
+brazil_references <- read_references("data/savedrecs (5).ciw", dir=FALSE, filename_root="output/brazil")
+output <- read_authors(brazil_references, filename_root="output/brazil")
+brazil_authors <- output$authors
+brazil_authors__references <- output$authors__references
+
+#brazil_references <- read.csv("output/brazil_references.csv", as.is=TRUE)
+#brazil_authors <- read.csv("output/brazil_authors.csv", as.is=TRUE)
+#brazil_authors__references <- read.csv("output/brazil_authors__references.csv", as.is=TRUE)
+
+##	Calculate the percentage of author records without contact information:
+sum(brazil_authors$C1 == "" | is.na(brazil_authors$C1))/length(brazil_authors$C1)*100
+
+
+##	Let's remove duplicates from our presumably updated and corrected author lists:
+
+output <- remove_duplicates(authors=ecuador_authors, authors__references=ecuador_authors__references, filename_root="output/ecuador_nodupe")
+ecuador_authors <- output$authors
+ecuador_authors__references <- output$authors__references
+
+output <- remove_duplicates(authors=brazil_authors, authors__references=brazil_authors__references, filename_root="output/brazil_nodupe")
+brazil_authors <- output$authors
+brazil_authors__references <- output$authors__references
+
+
+##	Now let's merge references, authors, and authors__references:
+output <- merge_records(
+  references=brazil_references, 
+  authors=brazil_authors, 
+  authors__references=brazil_authors__references, 
+  references_merge=ecuador_references, 
+  authors_merge=ecuador_authors, 
+  authors__references_merge=ecuador_authors__references, 
+  filename_root = "output/merged"
+)
+
+merged_references <- output$references
+merged_authors <- output$authors
+merged_authors__references <- output$authors__references
+
+##	And finally after scrolling through and hand-correcting any authors
+##		from the merged list that have a high similarity:
+#merged_authors <- read.csv("merged_authors.csv", as.is=TRUE)
+
+output <- remove_duplicates(authors=merged_authors, authors__references=merged_authors__references, filename_root="output/merged_nodupe")
+merged_authors <- output$authors
+merged_authors__references <- output$authors__references
+
+
+
+######
+##	Sample geographic plotting of author locations based on RP or C1:
+
+##	How to process addresses:
+authors_working <- merged_authors
+
+##	Process a single address at a time:
+refnet_geocode(data.frame("AU_ID"=authors_working$AU_ID[1], "type"="RP", "address"=authors_working$RP[1], stringsAsFactors=FALSE))
+refnet_geocode(data.frame("AU_ID"=authors_working$AU_ID[2], "type"="RP", "address"=authors_working$RP[2], stringsAsFactors=FALSE), verbose=TRUE)
+
+##	Process a group of addresses:
+read_addresses(data.frame("AU_ID"=authors_working$AU_ID[1:10], "type"="RP", "address"=authors_working$RP[1:10], stringsAsFactors=FALSE), verbose=TRUE)
+
+
+##	Sample using the first C1 address listed for the first 1000 authors, 
+##		keyed by author so we can join it back:
+##	NOTE:  The string "NA" does get translated to a point so we'll remove it
+##		before passing it along:
+address_list_working <- sapply(strsplit(authors_working$C1[1:1000], "\n"), FUN=function(x) { return(x[1]) })
+address_list_working_au_id <- authors_working$AU_ID[1:1000][!is.na(address_list_working)]
+address_list_working <- address_list_working[!is.na(address_list_working)]
+
+##	Let's try to strip off any institutional references which may complicate geocoding:
+address_list_working <- gsub("^.* (.*,.*,.*)$", "\\1", address_list_working)
+address_list_working <- gsub("[. ]*$", "", address_list_working)
+
+##	Use the full list to create addresses from the C1 records:
+addresses_working <- read_addresses(data.frame("id"=address_list_working_au_id, "type"="C1", "address"=address_list_working, stringsAsFactors=FALSE), filename_root="output/merged_nodupe_addresses_C1_first1000")
+#addresses_working <- read.csv("output/merged_nodupe_addresses_C1_first1000_addresses.csv")
+
+
+##	Now we can use those addresses to plot things out:
+plot_addresses_country(addresses_working)
+plot_addresses_points(addresses_working)
+
+##	Uncomment to save as a PDF, and display the semi-transparent edge color:
+#pdf("output/merged_nodupe_first1000_linkages_countries.pdf")
+net_plot_coauthor(addresses_working, merged_authors__references)
+#dev.off()
+net_plot_coauthor_country(addresses_working, merged_authors__references)
+
+##	The default plot area doesn't show semitransparent colors, so we'll output to PDF:
+output <- net_plot_coauthor_country(addresses_working, merged_authors__references)
+ggsave("output/merged_nodupe_first1000_linkages_countries_world_ggplot.pdf", output, h = 9/2, w = 9)
+
+
+##	We can subset records any way that makes sense.  For example, if we wanted to only use references from 2012 (note that the way records are read in they are strings and have a hard return character):
+ref_index <- merged_references$PY == "2012\n"
+summary(ref_index)
+
+##	Pull reference IDs (UT field) for just those from 2012:
+UT_index <- merged_references$UT[ref_index]
+merged_authors__references_subset <- merged_authors__references[ merged_authors__references$UT %in% UT_index, ]
+
+##	Plot the subset for 2012:
+net_plot_coauthor_country(addresses_working, merged_authors__references_subset)
+
+
+##	Compare to 2011:
+ref_index <- merged_references$PY == "2011\n"
+UT_index <- merged_references$UT[ref_index]
+merged_authors__references_subset <- merged_authors__references[ merged_authors__references$UT %in% UT_index, ]
+
+##	Plot the subset for 2011:
+net_plot_coauthor_country(addresses_working, merged_authors__references_subset)
