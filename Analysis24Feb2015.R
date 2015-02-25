@@ -30,11 +30,10 @@ require(refnet)
 #ARG BOL BRA CHL COL CRI CUB ECU SLV GTM HND MEX NIC PAN PRY PER URY VEN
 ####################
 ####################
-setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAm Science (Bruna & Hahn)/SocioEconomic Data/GDP_WorldBank_Global") #These data are in a different Folder
 
 #Importing the GDP Data. These data are for all countries x years, so will need to select just the years of interest and the countries in the analyses
+setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAm Science (Bruna & Hahn)/SocioEconomic Data/GDP_WorldBank_Global") #These data are in a different Folder
 GDP<-read.csv("GDP.csv", dec=".", header = TRUE, sep = ",", check.names=FALSE)
-
 GDP<-GDP[GDP$Country.Code=="ARG" | GDP$Country.Code=="BOL"| GDP$Country.Code=="BRA" | GDP$Country.Code=="CHL" | GDP$Country.Code=="COL"
          | GDP$Country.Code=="CRI" | GDP$Country.Code=="CUB" | GDP$Country.Code=="ECU" | GDP$Country.Code=="SLV" | GDP$Country.Code=="GTM" 
          | GDP$Country.Code=="HND" | GDP$Country.Code=="MEX" | GDP$Country.Code=="NIC" | GDP$Country.Code=="PAN" | GDP$Country.Code=="PRY" 
@@ -55,11 +54,65 @@ PopSize<-PopSize[PopSize$Country.Code=="ARG" | PopSize$Country.Code=="BOL"| PopS
 PopSize<-PopSize[, -(5:30)]
 summary(PopSize)
 
+#Importing the Investment in R&D Data. These data are for all countries x years, so will need to select just the years of interest and the countries in the analyses
+setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAm Science (Bruna & Hahn)/SocioEconomic Data/R&D (% of GDP)")
+RD<-read.csv("R&D.csv", dec=".", header = TRUE, sep = ",", check.names=FALSE)
+RD<-RD[RD$Country.Code=="ARG" | RD$Country.Code=="BOL"| RD$Country.Code=="BRA" | RD$Country.Code=="CHL" | RD$Country.Code=="COL"
+         | RD$Country.Code=="CRI" | RD$Country.Code=="CUB" | RD$Country.Code=="ECU" | RD$Country.Code=="SLV" | RD$Country.Code=="GTM" 
+         | RD$Country.Code=="HND" | RD$Country.Code=="MEX" | RD$Country.Code=="NIC" | RD$Country.Code=="PAN" | RD$Country.Code=="PRY" 
+         | RD$Country.Code=="PER" | RD$Country.Code=="URY" | RD$Country.Code=="VEN",]
+#This deletes everything all years prior to 1986 - left 5 years before start of publications record to test for a lag in RD in productivity
+RD<-RD[, -(5:30)]
+summary(RD)
 
-###Can we get HDI?
-###Can we get HDI?
-###Can we get HDI?
-###Can we get HDI?
+
+#Importing World Bank Ed Data. These data are for all countries x years, so will need to select just the years of interest and the countries in the analyses
+setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAm Science (Bruna & Hahn)/SocioEconomic Data/WorldBank_ED")
+WB_ED<-read.csv("WorldBankEdData.csv", dec=".", header = TRUE, sep = ",", check.names=FALSE)
+WB_ED<-WB_ED[WB_ED$Country.Code=="ARG" | WB_ED$Country.Code=="BOL"| WB_ED$Country.Code=="BRA" | WB_ED$Country.Code=="CHL" | WB_ED$Country.Code=="COL"
+       | WB_ED$Country.Code=="CRI" | WB_ED$Country.Code=="CUB" | WB_ED$Country.Code=="ECU" | WB_ED$Country.Code=="SLV" | WB_ED$Country.Code=="GTM" 
+       | WB_ED$Country.Code=="HND" | WB_ED$Country.Code=="MEX" | WB_ED$Country.Code=="NIC" | WB_ED$Country.Code=="PAN" | WB_ED$Country.Code=="PRY" 
+       | WB_ED$Country.Code=="PER" | WB_ED$Country.Code=="URY" | WB_ED$Country.Code=="VEN",]
+#This deletes everything all years prior to 1986 - left 5 years before start of publications recoWB_ED to test for a lag in WB_ED in productivity
+WB_ED<-WB_ED[, -(5:30)]
+summary(WB_ED)
+
+
+
+#Importing the UNDP ED Data. These data are for all countries x years, so will need to select just the years of interest and the countries in the analyses
+setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAm Science (Bruna & Hahn)/SocioEconomic Data/UNDP_ED")
+UN_ED<-read.csv("UNDP_EdIndex.csv", dec=".", header = TRUE, sep = ",", check.names=FALSE)
+
+UN_ED$Country.Code<- NA
+UN_ED$Country.Code[UN_ED$Country == "Argentina"]  <- "ARG"
+UN_ED$Country.Code[UN_ED$Country == "Bolivia"]  <- "BOL"
+UN_ED$Country.Code[UN_ED$Country == "Brazil"]  <- "BRA"
+UN_ED$Country.Code[UN_ED$Country == "Chile"]  <- "CHL"
+UN_ED$Country.Code[UN_ED$Country == "Costa Rica"]  <-"CRI"
+UN_ED$Country.Code[UN_ED$Country == "Cuba"]  <- "CUB"
+UN_ED$Country.Code[UN_ED$Country == "Ecuador"]  <-"ECU"
+UN_ED$Country.Code[UN_ED$Country == "El Salvador"]  <-"SLV"
+UN_ED$Country.Code[UN_ED$Country == "Guatemala"]  <-"GTM"
+UN_ED$Country.Code[UN_ED$Country == "Honduras"]  <-"HND"
+UN_ED$Country.Code[UN_ED$Country == "Mexico"]  <-"MEX"
+UN_ED$Country.Code[UN_ED$Country == "Nicaragua"]  <-"NIC"
+UN_ED$Country.Code[UN_ED$Country == "Panama"]  <-"PAN"
+UN_ED$Country.Code[UN_ED$Country == "Paraguay"]  <-"PRY"
+UN_ED$Country.Code[UN_ED$Country == "Peru"]  <-"PER"
+UN_ED$Country.Code[UN_ED$Country == "Uruguay"]  <-"URY"
+UN_ED$Country.Code[UN_ED$Country == "Venezuela"]  <-"VEN"
+####NEED TO DELETE THE NA!!!!!
+UN_ED<-UN_ED[UN_ED$Country.Code=="ARG" | UN_ED$Country.Code=="BOL"| UN_ED$Country.Code=="BRA" | UN_ED$Country.Code=="CHL" | UN_ED$Country.Code=="COL"
+       | UN_ED$Country.Code=="CRI" | UN_ED$Country.Code=="CUB" | UN_ED$Country.Code=="ECU" | UN_ED$Country.Code=="SLV" | UN_ED$Country.Code=="GTM" 
+       | UN_ED$Country.Code=="HND" | UN_ED$Country.Code=="MEX" | UN_ED$Country.Code=="NIC" | UN_ED$Country.Code=="PAN" | UN_ED$Country.Code=="PRY" 
+       | UN_ED$Country.Code=="PER" | UN_ED$Country.Code=="URY" | UN_ED$Country.Code=="VEN",]
+#This deletes everything all years prior to 1986 - left 5 years before start of publications recoUN_ED to test for a lag in UN_ED in productivity
+UN_ED<-UN_ED[, -(5:30)]
+summary(UN_ED)
+
+
+
+
 
 
 ####################
