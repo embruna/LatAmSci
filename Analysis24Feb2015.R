@@ -81,8 +81,8 @@ summary(WB_ED)
 
 #Importing the UNDP ED Data. These data are for all countries x years, so will need to select just the years of interest and the countries in the analyses
 setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAm Science (Bruna & Hahn)/SocioEconomic Data/UNDP_ED")
-UN_ED<-read.csv("UNDP_EdIndex.csv", dec=".", header = TRUE, sep = ",", check.names=FALSE)
-
+UN_ED<-read.csv("UNDP_EdIndex.csv", dec=".", header = TRUE, sep = ",", na.strings='NULL', check.names=FALSE)
+str(UN_ED)
 UN_ED$Country.Code<- NA
 UN_ED$Country.Code[UN_ED$Country == "Argentina"]  <- "ARG"
 UN_ED$Country.Code[UN_ED$Country == "Bolivia"]  <- "BOL"
@@ -101,13 +101,8 @@ UN_ED$Country.Code[UN_ED$Country == "Paraguay"]  <-"PRY"
 UN_ED$Country.Code[UN_ED$Country == "Peru"]  <-"PER"
 UN_ED$Country.Code[UN_ED$Country == "Uruguay"]  <-"URY"
 UN_ED$Country.Code[UN_ED$Country == "Venezuela"]  <-"VEN"
-####NEED TO DELETE THE NA!!!!!
-UN_ED<-UN_ED[UN_ED$Country.Code=="ARG" | UN_ED$Country.Code=="BOL"| UN_ED$Country.Code=="BRA" | UN_ED$Country.Code=="CHL" | UN_ED$Country.Code=="COL"
-       | UN_ED$Country.Code=="CRI" | UN_ED$Country.Code=="CUB" | UN_ED$Country.Code=="ECU" | UN_ED$Country.Code=="SLV" | UN_ED$Country.Code=="GTM" 
-       | UN_ED$Country.Code=="HND" | UN_ED$Country.Code=="MEX" | UN_ED$Country.Code=="NIC" | UN_ED$Country.Code=="PAN" | UN_ED$Country.Code=="PRY" 
-       | UN_ED$Country.Code=="PER" | UN_ED$Country.Code=="URY" | UN_ED$Country.Code=="VEN",]
-#This deletes everything all years prior to 1986 - left 5 years before start of publications recoUN_ED to test for a lag in UN_ED in productivity
-UN_ED<-UN_ED[, -(5:30)]
+UN_ED<-UN_ED[complete.cases(UN_ED[,"Country.Code"]),] #Reduces it down to juyst the countries for which you have a assigned a code.
+UN_ED$Country.Code<-factor(UN_ED$Country.Code) #they were being converted as characters, so convert them to factors
 summary(UN_ED)
 
 
