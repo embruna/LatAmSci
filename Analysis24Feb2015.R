@@ -1,4 +1,36 @@
-#test
+#TO DO LIST
+
+#COMPLETE: Figure1: Total Productivity, all countries combined   
+
+#Figure2: Map shaded by total pubs over period 1991-2014
+
+
+#Figure3: Map shaded by % of productivity over period 1991-2014
+
+
+#COMPLETE: Figure4a: line chart of # papers by year for each country DONE 
+
+
+#Figure4b: ALTERNATIVE: line chart of % of total LATAM producvitivy by year for each country  
+
+
+#Figure5: Map shaded by total % change in publications over period 1991-2014
+
+
+#Figure6 and Analyses: Line X = pop size, Y = Papers  QUESTION: do this by year? certain year? average of years?
+
+
+#Figure7 and Analyses: pubs per capita QUESTION: do this by year? certain year? average of years?
+
+
+#Figure8 and Analyses: pubs per $gdp previous year  QUESTION: do this by year? certain year? average of years?
+
+
+#Figure9: pubs per education index  QUESTION: do this by year? certain year? average of years?
+
+
+
+
 #R CODE FOR IMPORTING, MANIPULATING, AND ANALYZING THE DATASETS USED IN: 
 #install.packages("refnet_0.6.tar.gz", repos=NULL, type="source")
 #setwd("/Users/emiliobruna/Desktop/LATAM Data Updates")
@@ -223,23 +255,31 @@ DUMMY$year[DUMMY$year=="1995"]<-"1990"
 #Now bind that frame to the one with the data from 1991-2014
 allnations_86to14<-rbind(DUMMY, allnations)
 #this sorts them by year and country
-allnations_86to14<-allnations_86to14[order(allnations_86to14$country, allnations_86to14$year),] 
+allnations_86to14<-allnations_86to14[order(allnations_86to14$country, allnations_86to14$year),]
+allnations_86to14$year<-as.numeric(allnations_86to14$year)
 
 
 #some figures using ggplot2
-#Fig1 is line chart of productivity per year per country
+
+#FIGURE 1 TOTAL PRODUCTIVITY BY YEAR
 Fig1<-allnations
-qplot(year, pubs, data = Fig1, color = country, main = "number of articles produced from 1991-2014")
+Fig1<-as.data.frame(tapply(Fig1$pubs, Fig1$year, sum))
+names(Fig1)[1] <- "publications"
+Fig1$year<-c(1991:2014)
+MyFig1<-qplot(year,publications, data = Fig1, geom="line", main = "Articles with Latin American Authors/Co-Authors, 1991-2014")
+MyFig1 + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+                             panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
 
-qplot(year, pubs, data = Fig1, geom = c("point", "line"), colour = country)
 
-#Line chart of results, no points, using ggplot
-MyFig<-qplot(year, pubs, data = Fig1, color = country, geom = "line",
+
+
+#Fig4a is line chart of productivity per year per country
+Fig4a<-allnations #select the data you need
+MyFig4a<-qplot(year, pubs, data = Fig4a, color = country, geom = "line",
       colour = country,
       main = "number of articles per country, 1991-2014")
-
-#these removes the gray background and gridlines from the plot
-MyFig + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+#these removes the gray background, dots, and gridlines from the plot
+MyFig4a + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
                                  panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
 
 
