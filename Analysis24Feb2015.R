@@ -4,18 +4,14 @@
 
 #Figure2: Map shaded by total pubs over period 1991-2014
 
-
 #Figure3: Map shaded by % of productivity over period 1991-2014
-
 
 #COMPLETE: Figure4a: line chart of # papers by year for each country DONE 
 
-
 #Figure4b: ALTERNATIVE: line chart of % of total LATAM producvitivy by year for each country  
 
-
-#Figure5: Map shaded by total % change in publications over period 1991-2014
-
+#Figure5: Map shaded by total % change in publications over period 1991-2014. Because there is some interannual variability, 
+#used the sum of articles 1991-1995 and 2010-2014 and calclulated as Relative Growth Rate
 
 #Figure6 and Analyses: Line X = pop size, Y = Papers  QUESTION: do this by year? certain year? average of years?
 
@@ -51,6 +47,8 @@ library(sna)
 library(Hmisc)
 library(refnet)
 library(ggplot2)
+library(dplyr)
+library(tidyr)
 require(refnet)
 
 
@@ -197,7 +195,7 @@ output_by_year <- as.data.frame(sapply(output_by_year, function(x)
 #table of the number of papers by each country in each year (2001-2014)
 yearly_prod<-table(output_by_year$country, output_by_year$year)
 yearly_prod<-as.data.frame(yearly_prod, stringsAsFactors=TRUE)
-colnames(yearly_prod) <- c("country", "year", "pubs")
+colnames(yearly_prod) <- c("country", "year", "articles")
 
 
 ####################
@@ -229,6 +227,7 @@ allnations$Country.Code[allnations$country == "Argentina"]  <-"ARG"
 allnations$Country.Code[allnations$country == "Bolivia"]  <- "BOL"
 allnations$Country.Code[allnations$country == "Brazil"]  <- "BRA"
 allnations$Country.Code[allnations$country == "Chile"]  <- "CHL"
+allnations$Country.Code[allnations$country == "Colombia"]  <-"COL"
 allnations$Country.Code[allnations$country == "Costa Rica"]  <-"CRI"
 allnations$Country.Code[allnations$country == "Cuba"]  <- "CUB"
 allnations$Country.Code[allnations$country == "Ecuador"]  <-"ECU"
@@ -246,7 +245,7 @@ allnations$Country.Code[allnations$country == "Venezuela"]  <-"VEN"
 
 ###Create a dummy dataframe with so you can add the 1986-1990 Population data to it (there are no publication data for this period)
 DUMMY<-allnations[allnations$year<1996,]
-DUMMY$pubs<-NA
+DUMMY$articles<-NA
 DUMMY$year[DUMMY$year=="1991"]<-"1986"
 DUMMY$year[DUMMY$year=="1992"]<-"1987"
 DUMMY$year[DUMMY$year=="1993"]<-"1988"
@@ -263,10 +262,10 @@ allnations_86to14$year<-as.numeric(allnations_86to14$year)
 
 #FIGURE 1 TOTAL PRODUCTIVITY BY YEAR
 Fig1<-allnations
-Fig1<-as.data.frame(tapply(Fig1$pubs, Fig1$year, sum))
-names(Fig1)[1] <- "publications"
+Fig1<-as.data.frame(tapply(Fig1$articles, Fig1$year, sum))
+names(Fig1)[1] <- "articles" #need to rename the column after tapply
 Fig1$year<-c(1991:2014)
-MyFig1<-qplot(year,publications, data = Fig1, geom="line", main = "Articles with Latin American Authors/Co-Authors, 1991-2014")
+MyFig1<-qplot(year,articles, data = Fig1, geom="line", main = "Articles with Latin American Authors/Co-Authors, 1991-2014")
 MyFig1 + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
                              panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
 
@@ -275,7 +274,7 @@ MyFig1 + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = e
 
 #Fig4a is line chart of productivity per year per country
 Fig4a<-allnations #select the data you need
-MyFig4a<-qplot(year, pubs, data = Fig4a, color = country, geom = "line",
+MyFig4a<-qplot(year, articles, data = Fig4a, color = country, geom = "line",
       colour = country,
       main = "number of articles per country, 1991-2014")
 #these removes the gray background, dots, and gridlines from the plot
@@ -283,6 +282,50 @@ MyFig4a + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = 
                                  panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
 
 
+
+
+#Figure 5: % change from 1991-2014
+#select the data you need
+Fig5.1991_1995<-filter(Fig4a, year =="1991"| year =="1992" | year =="1993"| year =="1994"| year =="1995")
+#Fig5.1991_1995<-select(Fig5.1991_1995, -Country.Code) #Remove column "Country.code"
+
+Fig5.2010_2014<-filter(Fig4a, year =="2010"| year =="2011" | year =="2012"| year =="2013"| year =="2014")
+#Fig5.2010_2014<-select(Fig5.2010_2014, -Country.Code) #Remove column "Country.code"
+
+#sum the total productivity in the two 5-year windows of interest using aggregate
+Fig5.1991_1995<-aggregate(articles ~ country+Country.Code, data = Fig5.1991_1995, sum)
+Fig5.2010_2014<-aggregate(articles ~ country+Country.Code, data = Fig5.2010_2014, sum)
+
+#bind the two time frames together and rename the columns
+Fig5<-cbind(Fig5.1991_1995,Fig5.2010_2014[3])
+
+
+#calclulate the % cchange
+perc.change<-0
+perc.change<-(((Fig5[4]+0.001)-(Fig5[3]+0.001))/(Fig5[3]+0.001))*100
+
+Fig5<-cbind(Fig5,perc.change)
+names(Fig5)[3] <- "interval1" #need to rename the column after aggregate/bind
+names(Fig5)[4] <- "interval2" #need to rename the column after aggregate/bind
+names(Fig5)[5] <- "percent.change" #need to rename the column after aggregate/bind
+
+
+##Need to do some reshaping to plot figures you want.
+gather(Fig5,"country", "Country.code", 3:4)
+
+
+
+
+
+
+
+
+
+
+
+
+
+##Play figure 4a with smoothed curves
 ggplot(Fig1, aes(x=year, y = pubs, colour = country))+geom_point(color="firebrick")+stat_smooth()
 #need to put data in long form
 #Fig1<- dcast(Fig1, Fig1$country ~ Fig1$year, value.var="pubs")
