@@ -3,25 +3,22 @@
 #COMPLETE: Figure1: Total Productivity, all countries combined   
 
 #Figure2: Map shaded by total pubs over period 1991-2014
+#Data manipulated: DONE
 
 #Figure3: Map shaded by % of productivity over period 1991-2014
 
-#COMPLETE: Figure4a: line chart of # papers by year for each country DONE 
+#COMPLETE: Figure4a: line chart of # papers by year for each country  
 
 #Figure4b: ALTERNATIVE: line chart of % of total LATAM producvitivy by year for each country  
 
-#Figure5: Map shaded by total % change in publications over period 1991-2014. Because there is some interannual variability, 
+#COMPLETE: Figure5: Map shaded by total % change in publications over period 1991-2014. Because there is some interannual variability, 
 #used the sum of articles 1991-1995 and 2010-2014 and calclulated as Relative Growth Rate
 
 #Figure6 and Analyses: Line X = pop size, Y = Papers  QUESTION: do this by year? certain year? average of years?
 
 
 #Figure7 and Analyses: pubs per capita QUESTION: do this by year? certain year? average of years?
-
-
 #Figure8 and Analyses: pubs per $gdp previous year  QUESTION: do this by year? certain year? average of years?
-
-
 #Figure9: pubs per education index  QUESTION: do this by year? certain year? average of years?
 
 
@@ -271,6 +268,25 @@ MyFig1 + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = e
 
 
 
+#Figure 2: 
+Fig2<-allnations
+Fig2<-aggregate(articles ~ country+Country.Code, data = Fig2, sum)
+perc.total<-(Fig2$articles/sum(Fig2$articles))*100
+Fig2<-cbind(Fig2,perc.total)
+Fig2<-arrange(Fig2, articles)
+
+#sPDF <- getMap()  
+#mapCountryData(sPDF, mapRegion='latin america' )
+
+sPDF <- joinCountryData2Map( Fig2, joinCode = "ISO3", nameJoinColumn = "Country.Code")
+Lat <- c(-55,30)
+Long<-c(-180,-30)
+mapCountryData(sPDF, nameColumnToPlot="articles", xlim = Long, ylim = Lat)
+
+
+
+
+
 
 #Fig4a is line chart of productivity per year per country
 Fig4a<-allnations #select the data you need
@@ -302,19 +318,46 @@ Fig5<-cbind(Fig5.1991_1995,Fig5.2010_2014[3])
 
 #calclulate the % cchange
 perc.change<-0
-perc.change<-(((Fig5[4]+0.001)-(Fig5[3]+0.001))/(Fig5[3]+0.001))*100
+perc.change<-(((Fig5[4]+0)-(Fig5[3]+0))/(Fig5[3]+0))*100
 
 Fig5<-cbind(Fig5,perc.change)
 names(Fig5)[3] <- "interval1" #need to rename the column after aggregate/bind
 names(Fig5)[4] <- "interval2" #need to rename the column after aggregate/bind
 names(Fig5)[5] <- "percent.change" #need to rename the column after aggregate/bind
 
+#Calclulate each countries productivity as % of total LatAm Productivity
+perc.tot.int1<-(Fig5[3]/(sum(Fig5[3])))*100
+perc.tot.int2<-(Fig5[4]/(sum(Fig5[4])))*100
+#bind to dataframe
+Fig5<-cbind(Fig5,perc.tot.int1, perc.tot.int2)
+names(Fig5)[6] <- "percent.of.productivity.Int1" #need to rename the column after aggregate/bind
+names(Fig5)[7] <- "percent.of.productivity.Int2" #need to rename the column after aggregate/bind
+
+Fig5<-arrange(Fig5, percent.change)
 
 ##Need to do some reshaping to plot figures you want.
-gather(Fig5,"country", "Country.code", 3:4)
+
+#Fig5.1: Number of Articles: Interval 1 to Interval 2
+Fig5.1<-select(Fig5, -percent.change, -percent.of.productivity.Int1, 
+               -percent.of.productivity.Int2, -Country.Code)
+Fig5.1<-gather(Fig5.1,"interval", "articles", 2:3)
+#summary(Fig5.1)
+MyFig5.1<-ggplot(data=Fig5.1, aes(x=interval, y=articles, group=country, colour=country)) + geom_line() + geom_point()
+MyFig5.1 + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+                             panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
 
 
+#Fig5.2: Percent of Latam's productivity in Interval 1 vs Interval 2
+Fig5.2<-select(Fig5, -percent.change, -interval1, 
+               -interval2, -Country.Code)
+names(Fig5.2)[2] <- "Interval.1" #need to rename the column 
+names(Fig5.2)[3] <- "Interval.2" #need to rename the column 
 
+Fig5.2<-gather(Fig5.2,"interval", "percent.total.productivity", 2:3)
+
+MyFig5.2<-ggplot(data=Fig5.2, aes(x=interval, y=percent.total.productivity, group=country, colour=country)) + geom_line() + geom_point()
+MyFig5.2 + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+                              panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
 
 
 
