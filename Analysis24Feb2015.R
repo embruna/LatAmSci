@@ -27,9 +27,9 @@
 #R CODE FOR IMPORTING, MANIPULATING, AND ANALYZING THE DATASETS USED IN: 
 #install.packages("refnet_0.6.tar.gz", repos=NULL, type="source")
 #setwd("/Users/emiliobruna/Desktop/LATAM Data Updates")
-#setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAm Science (Bruna & Hahn)/refnet")
+#setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/refnet")
 ##  Set this to wherever you unzipped the archive folders (not /src):
-rm(list=ls())
+
 
 
 #detach(package:refnet, unload=TRUE)
@@ -46,9 +46,11 @@ library(refnet)
 library(ggplot2)
 library(dplyr)
 library(tidyr)
+library(rgdal)
 require(refnet)
+library(raster)
 
-
+rm(list=ls())
 
 ####################
 ####################
@@ -59,7 +61,7 @@ require(refnet)
 ####################
 
 #Importing the GDP Data. These data are for all countries x years, so will need to select just the years of interest and the countries in the analyses
-setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAm Science (Bruna & Hahn)/SocioEconomic Data/GDP_WorldBank_Global") #These data are in a different Folder
+setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/SocioEconomic Data/GDP_WorldBank_Global") #These data are in a different Folder
 GDP<-read.csv("GDP.csv", dec=".", header = TRUE, sep = ",", check.names=FALSE)
 GDP<-GDP[GDP$Country.Code=="ARG" | GDP$Country.Code=="BOL"| GDP$Country.Code=="BRA" | GDP$Country.Code=="CHL" | GDP$Country.Code=="COL"
          | GDP$Country.Code=="CRI" | GDP$Country.Code=="CUB" | GDP$Country.Code=="ECU" | GDP$Country.Code=="SLV" | GDP$Country.Code=="GTM" 
@@ -71,7 +73,7 @@ summary(GDP)
 
 
 #Importing the PopSize Data. These data are for all countries x years, so will need to select just the years of interest and the countries in the analyses
-setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAm Science (Bruna & Hahn)/SocioEconomic Data/worldBank_PopSize") #These data are in a different Folder
+setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/SocioEconomic Data/worldBank_PopSize") #These data are in a different Folder
 PopSize<-read.csv("PopSize.csv", dec=".", header = TRUE, sep = ",", check.names=FALSE)
 
 PopSize<-PopSize[PopSize$Country.Code=="ARG" | PopSize$Country.Code=="BOL"| PopSize$Country.Code=="BRA" | PopSize$Country.Code=="CHL" | PopSize$Country.Code=="COL"
@@ -82,7 +84,7 @@ PopSize<-PopSize[, -(5:30)]
 summary(PopSize)
 
 #Importing the Investment in R&D Data. These data are for all countries x years, so will need to select just the years of interest and the countries in the analyses
-setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAm Science (Bruna & Hahn)/SocioEconomic Data/R&D (% of GDP)")
+setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/SocioEconomic Data/R&D (% of GDP)")
 RD<-read.csv("R&D.csv", dec=".", header = TRUE, sep = ",", check.names=FALSE)
 RD<-RD[RD$Country.Code=="ARG" | RD$Country.Code=="BOL"| RD$Country.Code=="BRA" | RD$Country.Code=="CHL" | RD$Country.Code=="COL"
          | RD$Country.Code=="CRI" | RD$Country.Code=="CUB" | RD$Country.Code=="ECU" | RD$Country.Code=="SLV" | RD$Country.Code=="GTM" 
@@ -94,7 +96,7 @@ summary(RD)
 
 
 #Importing World Bank Ed Data. These data are for all countries x years, so will need to select just the years of interest and the countries in the analyses
-setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAm Science (Bruna & Hahn)/SocioEconomic Data/WorldBank_ED")
+setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/SocioEconomic Data/WorldBank_ED")
 WB_ED<-read.csv("WorldBankEdData.csv", dec=".", header = TRUE, sep = ",", check.names=FALSE)
 WB_ED<-WB_ED[WB_ED$Country.Code=="ARG" | WB_ED$Country.Code=="BOL"| WB_ED$Country.Code=="BRA" | WB_ED$Country.Code=="CHL" | WB_ED$Country.Code=="COL"
        | WB_ED$Country.Code=="CRI" | WB_ED$Country.Code=="CUB" | WB_ED$Country.Code=="ECU" | WB_ED$Country.Code=="SLV" | WB_ED$Country.Code=="GTM" 
@@ -107,7 +109,7 @@ summary(WB_ED)
 
 
 #Importing the UNDP ED Data. These data are for all countries x years, so will need to select just the years of interest and the countries in the analyses
-setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAm Science (Bruna & Hahn)/SocioEconomic Data/UNDP_ED")
+setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/SocioEconomic Data/UNDP_ED")
 UN_ED<-read.csv("UNDP_EdIndex.csv", dec=".", header = TRUE, sep = ",", na.strings='NULL', check.names=FALSE)
 str(UN_ED)
 UN_ED$Country.Code<- NA
@@ -144,7 +146,7 @@ summary(UN_ED)
 ####################
 ####################
 
-setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAm Science (Bruna & Hahn)/refnet")
+setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/refnet")
 
 ##	Let's read in single files, though we can specify a directory and 
 ##		set the dir=TRUE flag and read in an entire directory of files.
@@ -202,9 +204,9 @@ colnames(yearly_prod) <- c("country", "year", "articles")
 ####################
 ####################
 
-setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAm Science (Bruna & Hahn)") #These data are in a different Folder
+setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience") #These data are in a different Folder
 early_data<-read.csv("productivity_data_1991-2000.csv", dec=".", header = TRUE, sep = ",", check.names=FALSE)
-setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAm Science (Bruna & Hahn)/refnet") #Go back to original WD
+setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/refnet") #Go back to original WD
 as.data.frame(early_data)
 
 ####################
@@ -255,6 +257,42 @@ allnations_86to14<-allnations_86to14[order(allnations_86to14$country, allnations
 allnations_86to14$year<-as.numeric(allnations_86to14$year)
 
 
+
+
+###################
+###################
+##This section puts together the dsocioeconomic data so that it 
+##can be selected and added to publications data as needed
+###################
+###################
+
+
+#The $ invested in R&D, GDP and PopSize data are the same dimensions and all in wide form
+#start by rowbinding them then converitng to long form
+SESdata<-rbind(PopSize,GDP,RD)
+droplevels(SESdata)
+SESdata<-gather(SESdata, "Year", "Value", 5:33)
+str(SESdata)
+#clean up the names of the countries and indicators
+SESdata$Country.Name <- as.character(SESdata$Country.Name) #convert to character to change the values
+SESdata$Country.Name[SESdata$Country.Name == "Venezuela,.RB"]<-"Venezuela"
+SESdata$Country.Name[SESdata$Country.Name == "El.Salvador"]<-"El Salvador"
+SESdata$Country.Name <- factor(SESdata$Country.Name ) #convert back to Factor
+
+SESdata$Indicator.Name <- as.character(SESdata$Indicator.Name) #convert to character to change the values
+SESdata$Indicator.Name[SESdata$Indicator.Name == "Research.and.development.expenditure.(%.of.GDP)"]<-"R&D"
+SESdata$Indicator.Name[SESdata$Indicator.Name == "GDP.(current.US$)"]<-"GDP"
+SESdata$Indicator.Name[SESdata$Indicator.Name == "Population,.total"]<-"Pop. Size"
+SESdata$Indicator.Name <- factor(SESdata$Indicator.Name) #convert back to Factor
+
+
+
+###################
+###################
+##Now some analyses and figures
+##
+###################
+###################
 #some figures using ggplot2
 
 #FIGURE 1 TOTAL PRODUCTIVITY BY YEAR
@@ -275,14 +313,20 @@ perc.total<-(Fig2$articles/sum(Fig2$articles))*100
 Fig2<-cbind(Fig2,perc.total)
 Fig2<-arrange(Fig2, articles)
 
+
 #sPDF <- getMap()  
 #mapCountryData(sPDF, mapRegion='latin america' )
 
-sPDF <- joinCountryData2Map( Fig2, joinCode = "ISO3", nameJoinColumn = "Country.Code")
-Lat <- c(-55,30)
-Long<-c(-180,-30)
-mapCountryData(sPDF, nameColumnToPlot="articles", xlim = Long, ylim = Lat)
+sPDF <- joinCountryData2Map( Fig2, joinCode = "ISO3", nameJoinColumn = "Country.Code") 
+Lat <- c(-55,30) #-20 in first value cuts off antarctica perfectly
+Long<-c(-120,-40)
+mapCountryData(sPDF, nameColumnToPlot="articles", xlim = Long, ylim = Lat) #, mapRegion='latin america'
 
+#Adding labels for each country, requirespackage RASTER
+# get the coordinates for each country
+#country_coord<-data.frame(coordinates(sPDF),stringsAsFactors=F)
+# label the countries
+#text(x=country_coord$X1,y=country_coord$X2,labels=row.names(country_coord))
 
 
 
