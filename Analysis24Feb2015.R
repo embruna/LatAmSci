@@ -47,9 +47,9 @@ library(ggplot2)
 library(dplyr)
 library(tidyr)
 library(rgdal)
-require(refnet)
-library(raster)
-library(colorspace)
+#require(refnet)
+#library(raster)
+#library(colorspace)
 library(RColorBrewer)
 
 rm(list=ls())
@@ -308,35 +308,13 @@ pubs$Country.Code<-as.factor(pubs$Country.Code)
 pubs$Data.Source<-as.factor("EB&WH")
 summary(pubs)
 
-
-###Create a dummy dataframe with so you can add the 1986-1990 Population data to it (there are no publication data for this period)
-#DUMMY<-pubs[pubs$year<1996,]
-#DUMMY$articles<-NA
-#DUMMY$year[DUMMY$year=="1991"]<-"1986"
-#DUMMY$year[DUMMY$year=="1992"]<-"1987"
-#DUMMY$year[DUMMY$year=="1993"]<-"1988"
-#DUMMY$year[DUMMY$year=="1994"]<-"1989"
-##DUMMY$year[DUMMY$year=="1995"]<-"1990"
-#DUMMY$year<-as.factor(DUMMY$year)
-#Now bind that frame to the one with the data from 1991-2014
-#head(pubs86to14)
-#head(DUMMY)
-
-#pubs86to14<-rbind(DUMMY, pubs)
-
-#pubs86to14$year<-as.numeric(pubs86to14$year)  Makes year Numeric
-
-
-
 #Cleanup and sorting to merge the publications and the 3 indicators dataframes
-head(pubs)
-summary(pubs)
-
-head(SESdata)
-summary(SESdata)
-
-str(SESdata)
-str(pubs)
+#head(pubs)
+#summary(pubs)
+#head(SESdata)
+#summary(SESdata)
+#str(SESdata)
+#str(pubs)
 
 #Add columns and rename to match SESData
 names(pubs)[1:3] <- c("Country.Name", "Year", "Value")  #need to rename the columns
@@ -367,21 +345,19 @@ pubs<-pubs[,order(names(pubs))]
 UN_ED<-UN_ED[,order(names(UN_ED))]
 WB_ED<-WB_ED[,order(names(WB_ED))]
 
-head(pubs)
-head(SESdata)
-head(UN_ED)
-summary(UN_ED)
-head(WB_ED)
-str(WB_ED)
-str(SESdata)
-str(pubs)
-str(UN_ED)
-
-
+##The following were to heald with 2x the cleanup
+#head(pubs)
+#head(SESdata)
+#head(UN_ED)
+#head(WB_ED)
+#str(WB_ED)
+#str(SESdata)
+#str(pubs)
+#str(UN_ED)
 
 ALLDATA<-rbind(pubs,SESdata, UN_ED, WB_ED)
-summary(ALLDATA)
-str(ALLDATA)
+#summary(ALLDATA)
+#str(ALLDATA)
 
 
 ###################
@@ -408,7 +384,6 @@ MyFig1 + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = e
 
 
 #Figure 2: 
-
 Fig2<-ALLDATA[ALLDATA$Indicator.Name=="Articles",]
 Fig2<-aggregate(Value ~ Country.Name+Country.Code, data = Fig2, sum)
 perc.total<-(Fig2$Value/sum(Fig2$Value))*100
