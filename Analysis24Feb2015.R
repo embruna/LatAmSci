@@ -49,6 +49,8 @@ library(tidyr)
 library(rgdal)
 require(refnet)
 library(raster)
+library(colorspace)
+library(RColorBrewer)
 
 rm(list=ls())
 
@@ -67,6 +69,10 @@ GDP<-GDP[GDP$Country.Code=="ARG" | GDP$Country.Code=="BOL"| GDP$Country.Code=="B
          | GDP$Country.Code=="CRI" | GDP$Country.Code=="CUB" | GDP$Country.Code=="ECU" | GDP$Country.Code=="SLV" | GDP$Country.Code=="GTM" 
          | GDP$Country.Code=="HND" | GDP$Country.Code=="MEX" | GDP$Country.Code=="NIC" | GDP$Country.Code=="PAN" | GDP$Country.Code=="PRY" 
          | GDP$Country.Code=="PER" | GDP$Country.Code=="URY" | GDP$Country.Code=="VEN",]
+#clean up name of variable of interest
+GDP$Indicator.Name<-as.factor("GDP")
+#Add columns with data source
+GDP$Data.Source<-as.factor("WB")
 #This deletes everything all years prior to 1986 - left 5 years before start of publications record to test for a lag in GDP in productivity
 GDP<-GDP[, -(5:30)]
 summary(GDP)
@@ -81,6 +87,8 @@ PopSize<-PopSize[PopSize$Country.Code=="ARG" | PopSize$Country.Code=="BOL"| PopS
                  | PopSize$Country.Code=="HND" | PopSize$Country.Code=="MEX" | PopSize$Country.Code=="NIC" | PopSize$Country.Code=="PAN" | PopSize$Country.Code=="PRY" 
                  | PopSize$Country.Code=="PER" | PopSize$Country.Code=="URY" | PopSize$Country.Code=="VEN",]
 PopSize<-PopSize[, -(5:30)]
+PopSize$Data.Source<-as.factor("WB")
+PopSize$Indicator.Name<-as.factor("Pop. Size")
 summary(PopSize)
 
 #Importing the Investment in R&D Data. These data are for all countries x years, so will need to select just the years of interest and the countries in the analyses
@@ -92,8 +100,11 @@ RD<-RD[RD$Country.Code=="ARG" | RD$Country.Code=="BOL"| RD$Country.Code=="BRA" |
          | RD$Country.Code=="PER" | RD$Country.Code=="URY" | RD$Country.Code=="VEN",]
 #This deletes everything all years prior to 1986 - left 5 years before start of publications record to test for a lag in RD in productivity
 RD<-RD[, -(5:30)]
+RD$Data.Source<-as.factor("UNESCO")
+RD$Indicator.Name<-as.factor("R&D")
 summary(RD)
-
+head(RD)
+summary(RD)
 
 #Importing World Bank Ed Data. These data are for all countries x years, so will need to select just the years of interest and the countries in the analyses
 setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/SocioEconomic Data/WorldBank_ED")
@@ -102,11 +113,13 @@ WB_ED<-WB_ED[WB_ED$Country.Code=="ARG" | WB_ED$Country.Code=="BOL"| WB_ED$Countr
        | WB_ED$Country.Code=="CRI" | WB_ED$Country.Code=="CUB" | WB_ED$Country.Code=="ECU" | WB_ED$Country.Code=="SLV" | WB_ED$Country.Code=="GTM" 
        | WB_ED$Country.Code=="HND" | WB_ED$Country.Code=="MEX" | WB_ED$Country.Code=="NIC" | WB_ED$Country.Code=="PAN" | WB_ED$Country.Code=="PRY" 
        | WB_ED$Country.Code=="PER" | WB_ED$Country.Code=="URY" | WB_ED$Country.Code=="VEN",]
+#Reduces it down to juyst the countries for which you have a assigned a code.
+WB_ED<-WB_ED[complete.cases(WB_ED[,"Country.Code"]),]
+
 #This deletes everything all years prior to 1986 - left 5 years before start of publications recoWB_ED to test for a lag in WB_ED in productivity
 WB_ED<-WB_ED[, -(5:30)]
 summary(WB_ED)
-
-
+head(WB_ED,100)
 
 #Importing the UNDP ED Data. These data are for all countries x years, so will need to select just the years of interest and the countries in the analyses
 setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/SocioEconomic Data/UNDP_ED")
@@ -131,13 +144,64 @@ UN_ED$Country.Code[UN_ED$Country == "Peru"]  <-"PER"
 UN_ED$Country.Code[UN_ED$Country == "Uruguay"]  <-"URY"
 UN_ED$Country.Code[UN_ED$Country == "Venezuela"]  <-"VEN"
 UN_ED<-UN_ED[complete.cases(UN_ED[,"Country.Code"]),] #Reduces it down to juyst the countries for which you have a assigned a code.
-UN_ED$Country.Code<-factor(UN_ED$Country.Code) #they were being converted as characters, so convert them to factors
+UN_ED$Country.Code<-as.factor(UN_ED$Country.Code) #they were being converted as characters, so convert them to factors
 summary(UN_ED)
 
 
+###################
+###################
+##This section puts together the socioeconomic data so that it 
+##can be selected and added to publications data as needed
+###################
+###################
 
 
+#The $ invested in R&D, GDP and PopSize data are the same dimensions and all in wide form
+#start by rowbinding them then converitng to long form
+SESdata<-rbind(PopSize,GDP,RD)
+droplevels(SESdata)
+SESdata<-gather(SESdata, "Year", "Value", 5:33)
+#clean up the names of the countries 
+SESdata$Country.Name<-gsub("Venezuela,.RB", "Venezuela", SESdata$Country.Name)
+SESdata$Country.Name<-gsub("El.Salvador", "El Salvador", SESdata$Country.Name)
+#clean up the values of years by deleting YR 
+SESdata$Year<-gsub("YR", "", SESdata$Year)
+#these changes conveted the columns to "character" so need to change back to "factor"
+SESdata$Indicator.Name<-as.factor(SESdata$Indicator.Name)
+SESdata$Year<-as.factor(SESdata$Year)
+SESdata$Country.Name<-as.factor(SESdata$Country.Name)
+SESdata<-droplevels(SESdata)
+str(SESdata)
+head(SESdata)
+summary(SESdata)
 
+###THE UN AND WB ED DATA ARE A LITTLE MORE COMPLICATED.
+####FIRST CONVERT TO LONG
+
+
+head(UN_ED)
+str(UN_ED)
+UN_ED$HDI.Rank<- NULL #delete the column with HDI rank - this is for only one year, so best left to getting it elsewhere
+UN_ED<-gather(UN_ED, "Year", "Value", 2:15)
+UN_ED$Year<-gsub("YR", "", UN_ED$Year) #deleting YR
+UN_ED$Year<-as.factor(UN_ED$Year) #setting back as factor
+UN_ED$Data.Source<-as.factor("UN")
+UN_ED<-droplevels(UN_ED)
+str(UN_ED)
+head(UN_ED)
+summary(UN_ED)
+
+
+summary(WB_ED)
+head(WB_ED)
+WB_ED<-gather(WB_ED, "Year", "Value", 5:21)
+WB_ED$Data.Source<-as.factor("WB")
+WB_ED$Year<-gsub("YR", "", WB_ED$Year) #deleting YR
+WB_ED$Year<-as.factor(WB_ED$Year) #setting back as factor
+WB_ED<-droplevels(WB_ED)
+str(WB_ED)
+head(WB_ED)
+summary(WB_ED)
 
 ####################
 ####################
@@ -171,14 +235,14 @@ peru_references <- read_references("data/Peru_2001-2014.txt", dir=FALSE, filenam
 uruguay_references <- read_references("data/Uruguay_2001-2014.txt", dir=FALSE, filename_root="output/uruguay")
 venezuela_references <- read_references("data/Venezuela_2001-2014.txt", dir=FALSE, filename_root="output/venezuela")
 
-allnations<-rbind(ecuador_references, bolivia_references, argentina_references, brazil_references, chile_references, 
+pubs<-rbind(ecuador_references, bolivia_references, argentina_references, brazil_references, chile_references, 
                   colombia_references, costarica_references,cuba_references, elsalvador_references,guatemala_references, 
                   honduras_references, mexico_references, nicaragua_references,panama_references, paraguay_references, 
                   peru_references, uruguay_references, venezuela_references)
 
 
 #Extract only thro country and year of each publication to plot them over time
-output_by_year<-allnations[,c("filename","PY")]
+output_by_year<-pubs[,c("filename","PY")]
 #Change the names of the columns
 colnames(output_by_year) <- c("country", "year")
 
@@ -215,76 +279,109 @@ as.data.frame(early_data)
 ####################
 ####################
 
-allnations<-rbind(early_data, yearly_prod)
-allnations$year<-as.numeric(allnations$year)
-allnations<-allnations[order(allnations$country, allnations$year),] 
+pubs<-rbind(early_data, yearly_prod)
+pubs$year<-as.numeric(pubs$year)
+pubs<-pubs[order(pubs$country, pubs$year),] 
 
 #Add a column with the World Bank
-allnations$Country.Code<- NA
+pubs$Country.Code<- NA
 
-allnations$Country.Code[allnations$country == "Argentina"]  <-"ARG"
-allnations$Country.Code[allnations$country == "Bolivia"]  <- "BOL"
-allnations$Country.Code[allnations$country == "Brazil"]  <- "BRA"
-allnations$Country.Code[allnations$country == "Chile"]  <- "CHL"
-allnations$Country.Code[allnations$country == "Colombia"]  <-"COL"
-allnations$Country.Code[allnations$country == "Costa Rica"]  <-"CRI"
-allnations$Country.Code[allnations$country == "Cuba"]  <- "CUB"
-allnations$Country.Code[allnations$country == "Ecuador"]  <-"ECU"
-allnations$Country.Code[allnations$country == "El Salvador"]  <-"SLV"
-allnations$Country.Code[allnations$country == "Guatemala"]  <-"GTM"
-allnations$Country.Code[allnations$country == "Honduras"]  <-"HND"
-allnations$Country.Code[allnations$country == "Mexico"]  <-"MEX"
-allnations$Country.Code[allnations$country == "Nicaragua"]  <-"NIC"
-allnations$Country.Code[allnations$country == "Panama"]  <-"PAN"
-allnations$Country.Code[allnations$country == "Paraguay"]  <-"PRY"
-allnations$Country.Code[allnations$country == "Peru"]  <-"PER"
-allnations$Country.Code[allnations$country == "Uruguay"]  <-"URY"
-allnations$Country.Code[allnations$country == "Venezuela"]  <-"VEN"
+pubs$Country.Code[pubs$country == "Argentina"]  <-"ARG"
+pubs$Country.Code[pubs$country == "Bolivia"]  <- "BOL"
+pubs$Country.Code[pubs$country == "Brazil"]  <- "BRA"
+pubs$Country.Code[pubs$country == "Chile"]  <- "CHL"
+pubs$Country.Code[pubs$country == "Colombia"]  <-"COL"
+pubs$Country.Code[pubs$country == "Costa Rica"]  <-"CRI"
+pubs$Country.Code[pubs$country == "Cuba"]  <- "CUB"
+pubs$Country.Code[pubs$country == "Ecuador"]  <-"ECU"
+pubs$Country.Code[pubs$country == "El Salvador"]  <-"SLV"
+pubs$Country.Code[pubs$country == "Guatemala"]  <-"GTM"
+pubs$Country.Code[pubs$country == "Honduras"]  <-"HND"
+pubs$Country.Code[pubs$country == "Mexico"]  <-"MEX"
+pubs$Country.Code[pubs$country == "Nicaragua"]  <-"NIC"
+pubs$Country.Code[pubs$country == "Panama"]  <-"PAN"
+pubs$Country.Code[pubs$country == "Paraguay"]  <-"PRY"
+pubs$Country.Code[pubs$country == "Peru"]  <-"PER"
+pubs$Country.Code[pubs$country == "Uruguay"]  <-"URY"
+pubs$Country.Code[pubs$country == "Venezuela"]  <-"VEN"
+pubs$Country.Code<-as.factor(pubs$Country.Code)
+pubs$Data.Source<-as.factor("EB&WH")
+summary(pubs)
 
 
 ###Create a dummy dataframe with so you can add the 1986-1990 Population data to it (there are no publication data for this period)
-DUMMY<-allnations[allnations$year<1996,]
-DUMMY$articles<-NA
-DUMMY$year[DUMMY$year=="1991"]<-"1986"
-DUMMY$year[DUMMY$year=="1992"]<-"1987"
-DUMMY$year[DUMMY$year=="1993"]<-"1988"
-DUMMY$year[DUMMY$year=="1994"]<-"1989"
-DUMMY$year[DUMMY$year=="1995"]<-"1990"
+#DUMMY<-pubs[pubs$year<1996,]
+#DUMMY$articles<-NA
+#DUMMY$year[DUMMY$year=="1991"]<-"1986"
+#DUMMY$year[DUMMY$year=="1992"]<-"1987"
+#DUMMY$year[DUMMY$year=="1993"]<-"1988"
+#DUMMY$year[DUMMY$year=="1994"]<-"1989"
+##DUMMY$year[DUMMY$year=="1995"]<-"1990"
+#DUMMY$year<-as.factor(DUMMY$year)
 #Now bind that frame to the one with the data from 1991-2014
-allnations_86to14<-rbind(DUMMY, allnations)
-#this sorts them by year and country
-allnations_86to14<-allnations_86to14[order(allnations_86to14$country, allnations_86to14$year),]
-allnations_86to14$year<-as.numeric(allnations_86to14$year)
+#head(pubs86to14)
+#head(DUMMY)
+
+#pubs86to14<-rbind(DUMMY, pubs)
+
+#pubs86to14$year<-as.numeric(pubs86to14$year)  Makes year Numeric
 
 
 
+#Cleanup and sorting to merge the publications and the 3 indicators dataframes
+head(pubs)
+summary(pubs)
 
-###################
-###################
-##This section puts together the dsocioeconomic data so that it 
-##can be selected and added to publications data as needed
-###################
-###################
+head(SESdata)
+summary(SESdata)
 
-
-#The $ invested in R&D, GDP and PopSize data are the same dimensions and all in wide form
-#start by rowbinding them then converitng to long form
-SESdata<-rbind(PopSize,GDP,RD)
-droplevels(SESdata)
-SESdata<-gather(SESdata, "Year", "Value", 5:33)
 str(SESdata)
-#clean up the names of the countries and indicators
-SESdata$Country.Name <- as.character(SESdata$Country.Name) #convert to character to change the values
-SESdata$Country.Name[SESdata$Country.Name == "Venezuela,.RB"]<-"Venezuela"
-SESdata$Country.Name[SESdata$Country.Name == "El.Salvador"]<-"El Salvador"
-SESdata$Country.Name <- factor(SESdata$Country.Name ) #convert back to Factor
+str(pubs)
 
-SESdata$Indicator.Name <- as.character(SESdata$Indicator.Name) #convert to character to change the values
-SESdata$Indicator.Name[SESdata$Indicator.Name == "Research.and.development.expenditure.(%.of.GDP)"]<-"R&D"
-SESdata$Indicator.Name[SESdata$Indicator.Name == "GDP.(current.US$)"]<-"GDP"
-SESdata$Indicator.Name[SESdata$Indicator.Name == "Population,.total"]<-"Pop. Size"
-SESdata$Indicator.Name <- factor(SESdata$Indicator.Name) #convert back to Factor
+#Add columns and rename to match SESData
+names(pubs)[1:3] <- c("Country.Name", "Year", "Value")  #need to rename the columns
+pubs$Indicator.Code<-as.factor("PUBS.TOTL")                        #add a few new columns
+pubs$Indicator.Name<-as.factor("Articles")                         #add a few new columns
 
+names(UN_ED)[1] <- "Country.Name"                             #need to rename the columns
+UN_ED$Indicator.Code<-as.factor("UN.ED")                                 #add a few new columns
+UN_ED$Indicator.Name<-as.factor("UN Education Index")                    #add a few new columns
+
+names(WB_ED)[3] <- "Indicator.Name"                             #need to rename the columns
+names(WB_ED)[4] <- "Indicator.Code"                             #need to rename the columns
+
+#Coonvert year to a number (it was previously a factor)  #note can't just use as.numeric
+#the reason is here http://stackoverflow.com/questions/3418128/how-to-convert-a-factor-to-an-integer-numeric-without-a-loss-of-information
+SESdata$Year<-as.numeric(levels(SESdata$Year))[SESdata$Year] 
+UN_ED$Year<-as.numeric(levels(UN_ED$Year))[UN_ED$Year] 
+WB_ED$Year<-as.numeric(levels(WB_ED$Year))[WB_ED$Year] 
+
+#Sort it first within a frame by rows....
+SESdata<-SESdata[order(SESdata$Country.Name, SESdata$Year),]
+pubs<-pubs[order(pubs$Country.Name, pubs$Year),]
+UN_ED<-UN_ED[order(UN_ED$Country.Name, UN_ED$Year),]
+WB_ED<-UN_ED[order(WB_ED$Country.Name, WB_ED$Year),]
+#....and then sort by coloumn names
+SESdata<-SESdata[,order(names(SESdata))]
+pubs<-pubs[,order(names(pubs))]
+UN_ED<-UN_ED[,order(names(UN_ED))]
+WB_ED<-WB_ED[,order(names(WB_ED))]
+
+head(pubs)
+head(SESdata)
+head(UN_ED)
+summary(UN_ED)
+head(WB_ED)
+str(WB_ED)
+str(SESdata)
+str(pubs)
+str(UN_ED)
+
+
+
+ALLDATA<-rbind(pubs,SESdata, UN_ED, WB_ED)
+summary(ALLDATA)
+str(ALLDATA)
 
 
 ###################
@@ -293,11 +390,15 @@ SESdata$Indicator.Name <- factor(SESdata$Indicator.Name) #convert back to Factor
 ##
 ###################
 ###################
+
+####NEED TO REDO THE FIGURES NOW THAT DATA ARE ALL INA  SINGLE FILE!!!!
+
 #some figures using ggplot2
 
 #FIGURE 1 TOTAL PRODUCTIVITY BY YEAR
-Fig1<-allnations
-Fig1<-as.data.frame(tapply(Fig1$articles, Fig1$year, sum))
+Fig1<-ALLDATA[ALLDATA$Indicator.Name=="Articles",]
+
+Fig1<-as.data.frame(tapply(Fig1$Value, Fig1$Year, sum))
 names(Fig1)[1] <- "articles" #need to rename the column after tapply
 Fig1$year<-c(1991:2014)
 MyFig1<-qplot(year,articles, data = Fig1, geom="line", main = "Articles with Latin American Authors/Co-Authors, 1991-2014")
@@ -307,12 +408,12 @@ MyFig1 + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = e
 
 
 #Figure 2: 
-Fig2<-allnations
-Fig2<-aggregate(articles ~ country+Country.Code, data = Fig2, sum)
-perc.total<-(Fig2$articles/sum(Fig2$articles))*100
-Fig2<-cbind(Fig2,perc.total)
-Fig2<-arrange(Fig2, articles)
 
+Fig2<-ALLDATA[ALLDATA$Indicator.Name=="Articles",]
+Fig2<-aggregate(Value ~ Country.Name+Country.Code, data = Fig2, sum)
+perc.total<-(Fig2$Value/sum(Fig2$Value))*100
+Fig2<-cbind(Fig2,perc.total)
+Fig2<-arrange(Fig2, Value)
 
 #sPDF <- getMap()  
 #mapCountryData(sPDF, mapRegion='latin america' )
@@ -320,23 +421,20 @@ Fig2<-arrange(Fig2, articles)
 sPDF <- joinCountryData2Map( Fig2, joinCode = "ISO3", nameJoinColumn = "Country.Code") 
 #Lat <- c(-55,30) #-20 in first value cuts off antarctica perfectly
 #Long<-c(-120,-40)
-mapCountryData(sPDF, nameColumnToPlot="articles") #, mapRegion='latin america' xlim = Long, ylim = Lat
+mapCountryData(sPDF, nameColumnToPlot="Value") #, mapRegion='latin america' xlim = Long, ylim = Lat
 
 #How to just plot to LATAM (with HT to http://stackoverflow.com/questions/28838866/mapping-all-of-latin-america-with-rworldmap/28863992#28863992)
 #select out your countries
-sPDFmyCountries <- sPDF[sPDF$NAME %in% Fig2$country,]
+sPDFmyCountries <- sPDF[sPDF$NAME %in% Fig2$Country.Name,]
 #use the bbox to define xlim & ylim
 #mapCountryData(sPDF, nameColumnToPlot="articles", xlim=bbox(sPDFmyCountries)[1,], ylim=bbox(sPDFmyCountries)[2,])
-
 #OR BETTER YET: If you wanted just to display the boundaries of the countries you have 
 #(i.e. if you had all of the Latin American countries in your data) you could do :
-mapCountryData(sPDFmyCountries, nameColumnToPlot="articles")
-
-
+mapCountryData(sPDFmyCountries, nameColumnToPlot="Value", catMethod="categorical", colourPalette="heat", borderCol="black",  mapTitle = "Total Articles Published, 1991-2014") #numCats=30
 
 #Adding labels for each country, requirespackage RASTER
 # get the coordinates for each country
-#country_coord<-data.frame(coordinates(sPDF),stringsAsFactors=F)
+#country_coord<-data.frame(coordinates(sPDFmyCountries),stringsAsFactors=F)
 # label the countries
 #text(x=country_coord$X1,y=country_coord$X2,labels=row.names(country_coord))
 
@@ -345,28 +443,28 @@ mapCountryData(sPDFmyCountries, nameColumnToPlot="articles")
 
 
 #Fig4a is line chart of productivity per year per country
-Fig4a<-allnations #select the data you need
-MyFig4a<-qplot(year, articles, data = Fig4a, color = country, geom = "line",
-      colour = country,
-      main = "number of articles per country, 1991-2014")
+Fig4a<-ALLDATA[ALLDATA$Indicator.Name=="Articles",]
+MyFig4a<-qplot(Year, Value, data = Fig4a, color = Country.Name, geom = "line",
+      colour = Country.Name,
+      main = "Articles Produced Annually, 1991-2014")
+#This changes the color scheme of the lines
+#MyFig4a<-MyFig4a + scale_color_brewer(palette = "Paired") 
+
 #these removes the gray background, dots, and gridlines from the plot
 MyFig4a + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
                                  panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
 
-
-
-
 #Figure 5: % change from 1991-2014
 #select the data you need
-Fig5.1991_1995<-filter(Fig4a, year =="1991"| year =="1992" | year =="1993"| year =="1994"| year =="1995")
+Fig5.1991_1995<-filter(Fig4a, Year =="1991"| Year =="1992" | Year =="1993"| Year =="1994"| Year =="1995")
 #Fig5.1991_1995<-select(Fig5.1991_1995, -Country.Code) #Remove column "Country.code"
 
-Fig5.2010_2014<-filter(Fig4a, year =="2010"| year =="2011" | year =="2012"| year =="2013"| year =="2014")
+Fig5.2010_2014<-filter(Fig4a, Year =="2010"| Year =="2011" | Year =="2012"| Year =="2013"| Year =="2014")
 #Fig5.2010_2014<-select(Fig5.2010_2014, -Country.Code) #Remove column "Country.code"
 
-#sum the total productivity in the two 5-year windows of interest using aggregate
-Fig5.1991_1995<-aggregate(articles ~ country+Country.Code, data = Fig5.1991_1995, sum)
-Fig5.2010_2014<-aggregate(articles ~ country+Country.Code, data = Fig5.2010_2014, sum)
+#sum the total productivity in the two 5-Year windows of interest using aggregate
+Fig5.1991_1995<-aggregate(Value ~ Country.Name+Country.Code, data = Fig5.1991_1995, sum)
+Fig5.2010_2014<-aggregate(Value ~ Country.Name+Country.Code, data = Fig5.2010_2014, sum)
 
 #bind the two time frames together and rename the columns
 Fig5<-cbind(Fig5.1991_1995,Fig5.2010_2014[3])
@@ -396,9 +494,9 @@ Fig5<-arrange(Fig5, percent.change)
 #Fig5.1: Number of Articles: Interval 1 to Interval 2
 Fig5.1<-select(Fig5, -percent.change, -percent.of.productivity.Int1, 
                -percent.of.productivity.Int2, -Country.Code)
-Fig5.1<-gather(Fig5.1,"interval", "articles", 2:3)
+Fig5.1<-gather(Fig5.1,"interval", "Value", 2:3)
 #summary(Fig5.1)
-MyFig5.1<-ggplot(data=Fig5.1, aes(x=interval, y=articles, group=country, colour=country)) + geom_line() + geom_point()
+MyFig5.1<-ggplot(data=Fig5.1, aes(x=interval, y=Value, group=Country.Name, colour=Country.Name)) + geom_line() + geom_point()
 MyFig5.1 + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
                              panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
 
@@ -411,7 +509,7 @@ names(Fig5.2)[3] <- "Interval.2" #need to rename the column
 
 Fig5.2<-gather(Fig5.2,"interval", "percent.total.productivity", 2:3)
 
-MyFig5.2<-ggplot(data=Fig5.2, aes(x=interval, y=percent.total.productivity, group=country, colour=country)) + geom_line() + geom_point()
+MyFig5.2<-ggplot(data=Fig5.2, aes(x=interval, y=percent.total.productivity, group=Country.Name, colour=Country.Name)) + geom_line() + geom_point()
 MyFig5.2 + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
                               panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
 
@@ -425,9 +523,9 @@ MyFig5.2 + theme_bw() + theme(panel.border = element_blank(), panel.grid.major =
 
 
 ##Play figure 4a with smoothed curves
-ggplot(Fig1, aes(x=year, y = pubs, colour = country))+geom_point(color="firebrick")+stat_smooth()
+ggplot(Fig1, aes(x=Year, y = Value, colour = Country.Name))+geom_point(color="firebrick")+stat_smooth()
 #need to put data in long form
-#Fig1<- dcast(Fig1, Fig1$country ~ Fig1$year, value.var="pubs")
+#Fig1<- dcast(Fig1, Fig1$country ~ Fig1$Year, value.var="pubs")
 #names(Fig1)[names(Fig1)=="Fig1$country"] <- "country"
 #str(Fig1)
 #summary(Fig1)
