@@ -318,9 +318,21 @@ Fig2<-arrange(Fig2, articles)
 #mapCountryData(sPDF, mapRegion='latin america' )
 
 sPDF <- joinCountryData2Map( Fig2, joinCode = "ISO3", nameJoinColumn = "Country.Code") 
-Lat <- c(-55,30) #-20 in first value cuts off antarctica perfectly
-Long<-c(-120,-40)
-mapCountryData(sPDF, nameColumnToPlot="articles", xlim = Long, ylim = Lat) #, mapRegion='latin america'
+#Lat <- c(-55,30) #-20 in first value cuts off antarctica perfectly
+#Long<-c(-120,-40)
+mapCountryData(sPDF, nameColumnToPlot="articles") #, mapRegion='latin america' xlim = Long, ylim = Lat
+
+#How to just plot to LATAM (with HT to http://stackoverflow.com/questions/28838866/mapping-all-of-latin-america-with-rworldmap/28863992#28863992)
+#select out your countries
+sPDFmyCountries <- sPDF[sPDF$NAME %in% Fig2$country,]
+#use the bbox to define xlim & ylim
+#mapCountryData(sPDF, nameColumnToPlot="articles", xlim=bbox(sPDFmyCountries)[1,], ylim=bbox(sPDFmyCountries)[2,])
+
+#OR BETTER YET: If you wanted just to display the boundaries of the countries you have 
+#(i.e. if you had all of the Latin American countries in your data) you could do :
+mapCountryData(sPDFmyCountries, nameColumnToPlot="articles")
+
+
 
 #Adding labels for each country, requirespackage RASTER
 # get the coordinates for each country
