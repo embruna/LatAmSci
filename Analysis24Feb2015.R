@@ -1,27 +1,16 @@
 #TO DO LIST
 
 #COMPLETE: Figure1: Total Productivity, all countries combined   
-
-#Figure2: Map shaded by total pubs over period 1991-2014
-#Data manipulated: DONE
-
+#COMPLETEE Figure2: Map shaded by total pubs over period 1991-2014
 #Figure3: Map shaded by % of productivity over period 1991-2014
-
 #COMPLETE: Figure4a: line chart of # papers by year for each country  
-
-#Figure4b: ALTERNATIVE: line chart of % of total LATAM producvitivy by year for each country  
-
-#COMPLETE: Figure5: Map shaded by total % change in publications over period 1991-2014. Because there is some interannual variability, 
-#used the sum of articles 1991-1995 and 2010-2014 and calclulated as Relative Growth Rate
-
+#Figure4b: alternative: line chart of % of total LATAM producvitivy by year for each country  
+#Figure5: Map shaded by total % change in publications over period 1991-2014. Because there is some interannual variability, 
+    #used the sum of articles 1991-1995 and 2010-2014 and calclulated as Relative Growth Rate
 #Figure6 and Analyses: Line X = pop size, Y = Papers  QUESTION: do this by year? certain year? average of years?
-
-
 #Figure7 and Analyses: pubs per capita QUESTION: do this by year? certain year? average of years?
 #Figure8 and Analyses: pubs per $gdp previous year  QUESTION: do this by year? certain year? average of years?
 #Figure9: pubs per education index  QUESTION: do this by year? certain year? average of years?
-
-
 
 
 #R CODE FOR IMPORTING, MANIPULATING, AND ANALYZING THE DATASETS USED IN: 
@@ -53,6 +42,67 @@ library(rgdal)
 library(RColorBrewer)
 
 rm(list=ls())
+
+
+
+##################
+##################
+###THIS SECTION IMPORTS Data on University Rankings
+####Summarizes it, and appends 3 leter Country Codes
+##################
+##################
+#Read in the QS Rankings Data
+UNIRANK<-read.csv("QS.csv", dec=".", header = TRUE, sep = ",", na.strings='NULL', check.names=FALSE)
+titles<-UNIRANK$category[1:19]
+
+
+#COnvert it from a single column dataframe to a 19x100 dataframe and add column headings
+mat<- matrix(UNIRANK$data, ncol = 19, byrow = T)
+UNIRANK<- as.data.frame(mat, stringsAsFactors = T)
+names(UNIRANK)<-titles
+
+#Add a column with the 3 letter country codes to be consistent with the other datasets
+UNIRANK$Country.Code[UNIRANK$Country.Territory == "AR"]  <- "ARG"
+UNIRANK$Country.Code[UNIRANK$Country.Territory == "Bolivia"]  <- "BOL"
+UNIRANK$Country.Code[UNIRANK$Country.Territory == "BR"]  <- "BRA"
+UNIRANK$Country.Code[UNIRANK$Country.Territory == "CL"]  <- "CHL"
+UNIRANK$Country.Code[UNIRANK$Country.Territory == "CO"]  <- "COL"
+UNIRANK$Country.Code[UNIRANK$Country.Territory == "CR"]  <-"CRI"
+UNIRANK$Country.Code[UNIRANK$Country.Territory == "CU"]  <- "CUB"
+UNIRANK$Country.Code[UNIRANK$Country.Territory == "EC"]  <-"ECU"
+UNIRANK$Country.Code[UNIRANK$Country.Territory == "El Salvador"]  <-"SLV"
+UNIRANK$Country.Code[UNIRANK$Country.Territory == "Guatemala"]  <-"GTM"
+UNIRANK$Country.Code[UNIRANK$Country.Territory == "Honduras"]  <-"HND"
+UNIRANK$Country.Code[UNIRANK$Country.Territory == "MX"]  <-"MEX"
+UNIRANK$Country.Code[UNIRANK$Country.Territory == "Nicaragua"]  <-"NIC"
+UNIRANK$Country.Code[UNIRANK$Country.Territory == "Panama"]  <-"PAN"
+UNIRANK$Country.Code[UNIRANK$Country.Territory == "Paraguay"]  <-"PRY"
+UNIRANK$Country.Code[UNIRANK$Country.Territory == "PR"]  <-"PER"
+UNIRANK$Country.Code[UNIRANK$Country.Territory == "UY"]  <-"URY"
+UNIRANK$Country.Code[UNIRANK$Country.Territory == "VE"]  <-"VEN"
+UNIRANK$Country.Code<-as.factor(UNIRANK$Country.Code)
+#COnvert the ranking in 2012 in case you need to take avg. per country, etc.
+UNIRANK[1]<-as.character(UNIRANK$rank.2012)
+UNIRANK[1]<-as.numeric(UNIRANK$rank.2012)
+
+#Summary of how many of the top 200 university are in each country
+UNIRANK.table<-as.data.frame(table(UNIRANK$Country.Code))
+#Add the countries with NO universities in top 100
+countries.no.u<-as.data.frame(c("BOL", "SLV","GTM","HND", "NIC", "PAN", "PRY"))
+count.no.u<-as.data.frame(c("0","0","0","0", "0", "0", "0"))
+no.u<-cbind(countries.no.u,count.no.u)
+names(no.u)<-c("Var1","Freq")
+UNIRANK.table<-rbind(UNIRANK.table, no.u)
+
+#add columns needed to match other SES data to bind below
+UNIRANK.table$Year<-as.factor("2012")
+UNIRANK.table$Indicator.Name<-as.factor("NumberOfUnivTop100")
+UNIRANK.table$Value<-as.numeric(UNIRANK.table$Value)
+names(UNIRANK.table)[1] <- "Country.Code"
+names(UNIRANK.table)[2] <- "Value"
+str(UNIRANK.table)
+summary(UNIRANK.table)
+
 
 ####################
 ####################
@@ -131,6 +181,7 @@ UN_ED$Country.Code[UN_ED$Country == "Bolivia"]  <- "BOL"
 UN_ED$Country.Code[UN_ED$Country == "Brazil"]  <- "BRA"
 UN_ED$Country.Code[UN_ED$Country == "Chile"]  <- "CHL"
 UN_ED$Country.Code[UN_ED$Country == "Costa Rica"]  <-"CRI"
+UN_ED$Country.Code[UN_ED$Country == "Colombia"]  <- "COL"
 UN_ED$Country.Code[UN_ED$Country == "Cuba"]  <- "CUB"
 UN_ED$Country.Code[UN_ED$Country == "Ecuador"]  <-"ECU"
 UN_ED$Country.Code[UN_ED$Country == "El Salvador"]  <-"SLV"
@@ -177,7 +228,6 @@ summary(SESdata)
 
 ###THE UN AND WB ED DATA ARE A LITTLE MORE COMPLICATED.
 ####FIRST CONVERT TO LONG
-
 
 head(UN_ED)
 str(UN_ED)
@@ -373,7 +423,7 @@ ALLDATA<-rbind(pubs,SESdata, UN_ED, WB_ED)
 
 #FIGURE 1 TOTAL PRODUCTIVITY BY YEAR
 Fig1<-ALLDATA[ALLDATA$Indicator.Name=="Articles",]
-
+Fig1[complete.cases(Fig1),]
 Fig1<-as.data.frame(tapply(Fig1$Value, Fig1$Year, sum))
 names(Fig1)[1] <- "articles" #need to rename the column after tapply
 Fig1$year<-c(1991:2014)
@@ -385,6 +435,7 @@ MyFig1 + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = e
 
 #Figure 2: 
 Fig2<-ALLDATA[ALLDATA$Indicator.Name=="Articles",]
+Fig2[complete.cases(Fig2),]
 Fig2<-aggregate(Value ~ Country.Name+Country.Code, data = Fig2, sum)
 perc.total<-(Fig2$Value/sum(Fig2$Value))*100
 Fig2<-cbind(Fig2,perc.total)
@@ -419,6 +470,7 @@ mapCountryData(sPDFmyCountries, nameColumnToPlot="Value", catMethod="categorical
 
 #Fig4a is line chart of productivity per year per country
 Fig4a<-ALLDATA[ALLDATA$Indicator.Name=="Articles",]
+Fig4a[complete.cases(Fig4a),]
 MyFig4a<-qplot(Year, Value, data = Fig4a, color = Country.Name, geom = "line",
       colour = Country.Name,
       main = "Articles Produced Annually, 1991-2014")
@@ -428,6 +480,44 @@ MyFig4a<-qplot(Year, Value, data = Fig4a, color = Country.Name, geom = "line",
 #these removes the gray background, dots, and gridlines from the plot
 MyFig4a + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
                                  panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+
+
+#Fig4b is line chart of GDP per year per country
+Fig4b<-ALLDATA[ALLDATA$Indicator.Name=="GDP",]
+Fig4b[complete.cases(Fig4b),]
+MyFig4b<-qplot(Year, Value, data = Fig4b, color = Country.Name, geom = "line",
+               colour = Country.Name,
+               main = "GDP, 1991-2014")
+#This changes the color scheme of the lines
+#MyFig4a<-MyFig4a + scale_color_brewer(palette = "Paired") 
+
+#these removes the gray background, dots, and gridlines from the plot
+MyFig4b + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+                             panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+
+
+GDPdf<-ALLDATA[ALLDATA$Indicator.Name=="GDP",]
+Pubsdf<-ALLDATA[ALLDATA$Indicator.Name=="Articles",]
+GDPdf<-GDPdf[complete.cases(GDPdf),]
+Pubsdf<-Pubsdf[complete.cases(Pubsdf),]
+pubsgdp<-full_join(GDPdf, Pubsdf, by = "Year")
+pubsgdp<-pubsgdp[complete.cases(pubsgdp[,"Country.Name.y"]),] 
+plot(pubsgdp$Value.x,pubsgdp$Value.y, variablename=pubsgdp$Country.Code.x)
+
+theme_set(theme_bw())
+ggplot(pubsgdp, aes(x = Value.x, y = Value.y, color = Country.Code.x, shape = Country.Code.x)) + 
+  geom_point() + 
+  stat_smooth(method = 'lm')
+
+
+
+cor.test(pubsgdp$Value.x,pubsgdp$Value.y, method="spearman")
+
+hist(pubsgdp$Value.y)
+hist(pubsgdp$Value.x)
+Fig4c$Year<-as.factor(Fig4c$Year)
+spread(Fig4c, Indicator.Name,Value)
+Fig4c<-dcast(Fig4c, Fig4c$Indicator.Name~GDP+Articles)
 
 #Figure 5: % change from 1991-2014
 #select the data you need
