@@ -136,6 +136,8 @@ str(UNIRANK.table)
 #summary(UNIRANK.table)
 #levels(UNIRANK.table$Country.Name)
 
+
+
 ##########################################################################################################################################
 ##########################################################################################################################################
 #######  WORLD BANK GDP DATA. In World Bank data each country has a code. We import the entire dataset, then
