@@ -1,10 +1,9 @@
-#TO DO LIST
+#####TO DO LIST: DATA ENTRY AND MANIPULATION
+
+  #Figure out if need HDI. If so, need to reinsert it somewhere
 
 
-###   DATA ENTRY AND MANIPULATION
-###   1) Figure out if SESdata dhould be Joined with UN and WB ed Data 
-###   2) Figure out if need HDI. If so, need to reinsert it somewhere
-
+#####Analyses and Figures
 #COMPLETE: Figure1: Total Productivity, all countries combined   
 #COMPLETEE Figure2: Map shaded by total pubs over period 1991-2014
 #Figure3: Map shaded by % of productivity over period 1991-2014
@@ -351,10 +350,13 @@ str(UNED)
 
 ##########################################################################################################################################
 ##########################################################################################################################################
-####  Now bind all the SES / ED/ PopSize Data Together
+####  Now subset and bind all the SES / ED/ PopSize Data Together
 ##########################################################################################################################################
 ##########################################################################################################################################
 
+####HERE YOU CAN DECIDE WHAT WORLD BANK DATA TO USE. 
+###I STARTED BY TOGGLING ON Total.expenditure.on.educational.institutions.and.administration.as.a.%.of.GDP..All.sources..Tertiary
+WBED<-filter(WBED, Indicator.Name == "UIS.XGDP.56.FDINSTADM.FFD")
 
 #The $ invested in R&D, GDP and PopSize data are the same dimensions and all in wide form
 #start by rowbinding them then converitng to long form
@@ -362,16 +364,6 @@ SESdata<-rbind(PopSize,GDP,RD, WBED, UNED, UNIRANK.table)
 str(SESdata)
 droplevels(SESdata)
 summary(SESdata)
-
-##########################################################################################################################################
-##########################################################################################################################################
-####  SELECT DATA FROM ONLY 1986 ON
-##########################################################################################################################################
-##########################################################################################################################################
-
-SESdata$Year<-as.character(SESdata$Year)
-SESdata$Year<-as.numeric(SESdata$Year)
-SES86ON<-filter(SESdata, Year >= 1986)
 
 ####################
 ####################
@@ -508,14 +500,14 @@ WBED$Year<-as.numeric(levels(WBED$Year))[WBED$Year]
 SESdata<-SESdata[order(SESdata$Country.Name, SESdata$Year),]
 pubs<-pubs[order(pubs$Country.Name, pubs$Year),]
 UNED<-UNED[order(UNED$Country.Name, UNED$Year),]
-WBED<-UNED[order(WBED$Country.Name, WBED$Year),]
+WBED<-WBED[order(WBED$Country.Name, WBED$Year),]
 #....and then sort by coloumn names
 SESdata<-SESdata[,order(names(SESdata))]
 pubs<-pubs[,order(names(pubs))]
 UNED<-UNED[,order(names(UNED))]
 WBED<-WBED[,order(names(WBED))]
 
-##The following were to heald with 2x the cleanup
+##The following were are here to help with 2x data cleanup cleanup
 #head(pubs)
 #head(SESdata)
 #head(UNED)
@@ -525,9 +517,30 @@ WBED<-WBED[,order(names(WBED))]
 #str(pubs)
 #str(UNED)
 
-ALLDATA<-rbind(pubs,SESdata, UNED, WBED)
-#summary(ALLDATA)
-#str(ALLDATA)
+
+####################
+####################
+###Now Bind pubs data to SES data
+####################
+####################
+
+ALLDATA<-rbind(pubs,SESdata)
+str(ALLDATA)
+summary(ALLDATA)
+
+####################
+####################
+###Now Choose whatyears you want for the data
+####################
+####################
+ALLDATA<-filter(ALLDATA, Year >= 1986)
+
+ALLDATA<-droplevels(ALLDATA)
+summary(ALLDATA)
+str(ALLDATA)
+
+mytable <- xtabs(~Country.Code+Indicator.Code+Year, data=ALLDATA)
+ftable(mytable) # print table
 
 
 ###################
@@ -567,7 +580,7 @@ Fig2<-arrange(Fig2, Value)
 sPDF <- joinCountryData2Map( Fig2, joinCode = "ISO3", nameJoinColumn = "Country.Code") 
 #Lat <- c(-55,30) #-20 in first value cuts off antarctica perfectly
 #Long<-c(-120,-40)
-mapCountryData(sPDF, nameColumnToPlot="Value") #, mapRegion='latin america' xlim = Long, ylim = Lat
+mapCountryData(sPDF, nameColumnToPlot="perc.total") #, mapRegion='latin america' xlim = Long, ylim = Lat
 
 #How to just plot to LATAM (with HT to http://stackoverflow.com/questions/28838866/mapping-all-of-latin-america-with-rworldmap/28863992#28863992)
 #select out your countries
@@ -576,7 +589,7 @@ sPDFmyCountries <- sPDF[sPDF$NAME %in% Fig2$Country.Name,]
 #mapCountryData(sPDF, nameColumnToPlot="articles", xlim=bbox(sPDFmyCountries)[1,], ylim=bbox(sPDFmyCountries)[2,])
 #OR BETTER YET: If you wanted just to display the boundaries of the countries you have 
 #(i.e. if you had all of the Latin American countries in your data) you could do :
-mapCountryData(sPDFmyCountries, nameColumnToPlot="Value", catMethod="categorical", colourPalette="heat", borderCol="black",  mapTitle = "Total Articles Published, 1991-2014") #numCats=30
+mapCountryData(sPDFmyCountries, nameColumnToPlot="perc.total", catMethod="categorical", colourPalette="heat", borderCol="black",  mapTitle = "% of Articles Published, 1991-2014") #numCats=30
 
 #Adding labels for each country, requirespackage RASTER
 # get the coordinates for each country
