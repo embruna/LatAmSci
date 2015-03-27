@@ -239,7 +239,7 @@ RD$Data.Source<-as.factor("UNESCO")
 RD$Indicator.Name<-as.factor("R&D")
 RD$Country.Name<-gsub("Venezuela,.RB", "Venezuela", RD$Country.Name)
 RD$Country.Name<-gsub("El Salvador", "El.Salvador", RD$Country.Name)
-RD$$Country.Name<-gsub("Costa Rica", "Costa.Rica", RD$$Country.Name)
+RD$Country.Name<-gsub("Costa Rica", "Costa.Rica", RD$Country.Name)
 RD$Country.Name<-as.factor(RD$Country.Name)
 
 #Convert to Long Form
@@ -280,7 +280,7 @@ WBED$Country.Name<-as.factor(WBED$Country.Name)
 
 
 ########Convert to Long
-WBED<-gather(WBED, "Year", "Value", 5:43)
+WBED<-gather(WBED, "Year", "Value", 5:47)
 WBED$Data.Source<-as.factor("WBED")
 names(WBED)[3] <- "Indicator.Code" 
 names(WBED)[4] <- "Indicator.Name" 
@@ -332,6 +332,7 @@ UNED$Country.Code[UNED$Country == "Venezuela"]  <-"VEN"
 UNED<-UNED[complete.cases(UNED[,"Country.Code"]),] #Reduces it down to juyst the countries for which you have a assigned a code.
 UNED$Country.Code<-as.factor(UNED$Country.Code) #they were being converted as characters, so convert them to factors
 
+
 #CONVERT TO LONG
 UNED$HDI.Rank<- NULL #delete the column with HDI rank - this is for only one year, so best left to getting it elsewhere
 UNED<-gather(UNED, "Year", "Value", 2:15)
@@ -342,7 +343,7 @@ UNED$Indicator.Name<-as.factor("UNED")
 UNED$Indicator.Code<-as.factor("UN.ED.Index")
 names(UNED)[1] <- "Country.Name" 
 UNED<-droplevels(UNED)
-UNED<- UNED[,c("Country.Name","Country.Code","Indicator.Name","Indicator.Code","Data.Source","Year","Value")] #reorder the columns to bind
+UNED<- UNED[,c("Country.Name","Country.Code","Indicator.Name","Indicator.Code","Data.Source","Year","value")] #reorder the columns to bind
 #head(UNED)
 #summary(UNED)
 str(UNED)
@@ -355,8 +356,9 @@ str(UNED)
 ##########################################################################################################################################
 
 ####HERE YOU CAN DECIDE WHAT WORLD BANK DATA TO USE. 
-###I STARTED BY TOGGLING ON Total.expenditure.on.educational.institutions.and.administration.as.a.%.of.GDP..All.sources..Tertiary
-WBED<-filter(WBED, Indicator.Name == "UIS.XGDP.56.FDINSTADM.FFD")
+###I STARTED BY TOGGLING ON Public.expenditure.on.education.as.%.of.GDP
+
+WBED<-filter(WBED, Indicator.Name == "SE.XPD.TOTL.GD.ZS")
 
 #The $ invested in R&D, GDP and PopSize data are the same dimensions and all in wide form
 #start by rowbinding them then converitng to long form
@@ -539,9 +541,9 @@ ALLDATA<-droplevels(ALLDATA)
 summary(ALLDATA)
 str(ALLDATA)
 
-mytable <- xtabs(~Country.Code+Indicator.Code+Year, data=ALLDATA)
-ftable(mytable) # print table
-
+#mytable <- xtabs(~Country.Code+Indicator.Code+Year, data=ALLDATA)
+#ftable(mytable) # print table
+#FOO<-filter(ALLDATA, Indicator.Name == "------")
 
 ###################
 ###################
