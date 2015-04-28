@@ -196,7 +196,7 @@ PopSize<-PopSize[PopSize$Country.Code=="ARG" | PopSize$Country.Code=="BOL"| PopS
                  | PopSize$Country.Code=="PER" | PopSize$Country.Code=="URY" | PopSize$Country.Code=="VEN",]
 PopSize<-PopSize[, -(5:30)]
 PopSize$Data.Source<-as.factor("WB")
-PopSize$Indicator.Name<-as.factor("Pop. Size")
+PopSize$Indicator.Name<-as.factor("PopSize")
 PopSize$Country.Name<-gsub("Venezuela,.RB", "Venezuela", PopSize$Country.Name)
 PopSize$Country.Name<-gsub("El Salvador", "El.Salvador", PopSize$Country.Name)
 PopSize$Country.Name<-gsub("Costa Rica", "Costa.Rica", PopSize$Country.Name)
@@ -347,6 +347,7 @@ UNED<- UNED[,c("Country.Name","Country.Code","Indicator.Name","Indicator.Code","
 #head(UNED)
 #summary(UNED)
 str(UNED)
+
 
 
 ##########################################################################################################################################
@@ -545,12 +546,55 @@ str(ALLDATA)
 #ftable(mytable) # print table
 #FOO<-filter(ALLDATA, Indicator.Name == "------")
 
-###################
-###################
-##Now some analyses and figures
-##
-###################
-###################
+######################################
+######################################
+##  Now some analyses and figures
+######################################
+######################################
+
+####################
+# visualizations of individual independent variables
+####################
+
+
+#R&D Box Plot
+
+boxplot(Value~Country.Code,data=SESdata[SESdata$Indicator.Code=="R&D",], main="RD", xlab="Ncountry", ylab="median val")
+
+#Box Plot Education Indices
+
+condition <- c("WBED", "UN_ED")
+ED.DATA<-dplyr::filter(SESdata, Data.Source %in% condition)
+boxplot(Value~Country.Code,data=ED.DATA[ED.DATA$Data.Source=="UN_ED",], main="UNED", xlab="Ncountry", ylab="median val")
+boxplot(Value~Country.Code,data=ED.DATA[ED.DATA$Data.Source=="WBED",], main="UNED", xlab="Ncountry", ylab="median val")
+
+
+#line chart of popsize per year per country
+
+POP<-SESdata[SESdata$Indicator.Code=="PopSize" & SESdata$Year>=1991 ,]
+POP[complete.cases(POP),]
+POPFig<-qplot(Year, Value, data = POP, color = Country.Name, geom = "line",
+               colour = Country.Name,
+               main = "Population Size")
+#This changes the color scheme of the lines
+#MyFig4a<-MyFig4a + scale_color_brewer(palette = "Paired") 
+
+#these removes the gray background, dots, and gridlines from the plot
+POPFig + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+                             panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+
+#scatter plot of GDP vs PopSize
+
+POP2<-SESdata[(SESdata$Indicator.Code=="PopSize" | SESdata$Indicator.Code=="GDP") & SESdata$Year>=1991 ,]
+POP2<-droplevels(POP2)
+POP2<-select(POP2, one_of(c("Country.Name","Indicator.Code", "Value", "Year" )))
+POP2<-spread(POP2, Indicator.Code, Value)
+POPvGDP<- ggplot(POP2, aes(x=PopSize, y=GDP))
+POPvGDP+ geom_point()
+
+qplot(PopSize, GDP, data = POP2) + facet_wrap(~ Country.Name, scales = "free")
+
+
 
 ####NEED TO REDO THE FIGURES NOW THAT DATA ARE ALL INA  SINGLE FILE!!!!
 
@@ -615,6 +659,23 @@ MyFig4a<-qplot(Year, Value, data = Fig4a, color = Country.Name, geom = "line",
 #these removes the gray background, dots, and gridlines from the plot
 MyFig4a + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
                                  panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #Fig4b is line chart of GDP per year per country
