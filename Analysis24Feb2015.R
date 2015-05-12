@@ -44,6 +44,8 @@ library(rgdal)
 #library(raster)
 #library(colorspace)
 library(RColorBrewer)
+library(xts)
+library(zoo)
 
 rm(list=ls())
 

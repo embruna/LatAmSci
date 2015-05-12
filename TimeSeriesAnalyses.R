@@ -1,9 +1,117 @@
-# FROM R Cookbook by Teetor
 
-# select data to use
+# SIMPSON HELP
+#compare if linear vs nonlinear by additive model with a by = "series" spline so i have 1 per time series, & add ARMA errors.
+# its relatively trivial to then compare the trends (or even their difference) directly using the model info
+#http://www.sciencedirect.com/science/article/pii/S0016703711001438
+# "Least squares regression was used to investigate the relationship between 
+# sediment TOC and pollutant concentrations. All statistical analyses were 
+# performed with the R statistical software, version 2.11.1 (R Core Development Team, 2010) 
+# and the mgcv package, version 1.6-2 (Wood, 2004 and Wood, 2006).
+
+
+
+require(ggplot2)
+require(mgcv)
+
 condition <- c("GDP", "PopSize", "PUBS.TOTL")
 foo<-dplyr::filter(ALLDATA, Indicator.Code %in% condition)
 
+####BRAZIL
+condition <- c("Brazil")
+brazil<-dplyr::filter(foo, Country.Name %in% condition)
+brazil<-filter(brazil, Year >= 1991 & Year<2014)
+brazil$Country.Code<-NULL
+brazil$Data.Source<-NULL
+brazil$Indicator.Name<-NULL
+brazil<-tidyr::spread(brazil, Indicator.Code, Value)
+BR<-brazil
+BR$Country.Name<-NULL
+
+yBR<-BR$PUBS.TOTL
+xBR<-BR$Year
+
+data_plotBR = qplot(xBR, yBR)+theme_bw()
+print(data_plotBR)
+
+#LINEAR
+lmBR=gam(yBR~xBR)
+lm_summaryBR=summary(lmBR)
+print(lm_summaryBR)
+data_plotBR = data_plotBR + geom_smooth(colour="blue", method='lm', se=FALSE)
+print(data_plotBR)
+
+#SMOOTHED
+gam_modBR=gam(yBR~s(xBR))
+summary(gam_modBR)
+data_plotBR = data_plotBR + geom_smooth(colour="red",aes(yBR=fitted(gam_modBR)), se=FALSE)
+print(data_plotBR)
+plot(gam_modBR)
+
+
+#Is assumption of linearity justified? use gam() and anova(). Must have smoothed model nested in linear one
+lmBR=gam(yBR~xBR)
+nested_gam_modelBR=gam(yBR~s(xBR)+xBR)
+print(anova(lmBR, nested_gam_modelBR, test="Chisq"))
+
+
+##BOLIVIA
+condition <- c("Bolivia")
+bolivia<-dplyr::filter(foo, Country.Name %in% condition)
+bolivia<-filter(bolivia, Year >= 1991 & Year<2014)
+bolivia$Country.Code<-NULL
+bolivia$Data.Source<-NULL
+bolivia$Indicator.Name<-NULL
+bolivia<-tidyr::spread(bolivia, Indicator.Code, Value)
+BO<-bolivia
+BO$Country.Name<-NULL
+
+yBO<-BO$PUBS.TOTL
+xBO<-BO$Year
+
+data_plotBO=qplot(xBO, yBO)+theme_bw()
+print(data_plotBO)
+
+
+#LINEAR
+lmBO=gam(yBO~xBO)
+lm_summaryBO=summary(lmBO)
+print(lm_summaryBO)
+data_plotBO = data_plotBO + geom_smooth(colour="blue", method='lm', se=FALSE)
+print(data_plotBO)
+
+#SMOOTHED
+gam_modBO=gam(yBO~s(xBO))
+summary(gam_modBO)
+#data_plotBO = data_plotBO+geom_line(colour="red",aes(yBO=fitted(gam_modBO)))
+data_plotBO = data_plotBO + geom_smooth(colour="red",aes(yBO=fitted(gam_modBO)), se=FALSE)
+print(data_plotBO)
+plot(gam_modBO)
+
+#Is assumption of linearity justified? use gam() and anova(). Must have smoothed model nested in linear one
+lmBO=gam(yBO~xBO)
+nested_gam_modelBO=gam(yBO~s(xBO)+xBO)
+print(anova(lmBO, nested_gam_modelBO, test="Chisq"))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# FROM R Cookbook by Teetor
+# select data to use
+condition <- c("GDP", "PopSize", "PUBS.TOTL")
+foo<-dplyr::filter(ALLDATA, Indicator.Code %in% condition)
 
 ####BRAZIL
 condition <- c("Brazil")
@@ -44,14 +152,58 @@ NIC1<-nicaragua
 NIC1$Country.Name<-NULL
 NIC1$Year<-NULL
 
-#ANALYSES
-tsBR1<-zoo(BR1)
-plot(tsBR1)
-plot(tsBR1, screens=1)
-acf(tsBR1)
-Box.test(tsBR1$PUBS.TOTL, type="Ljung-Box")
-pacf(tsBR1$PUBS.TOTL)
-ccf(tsBR1$PUBS.TOTL,tsBR1$GDP)
+#ANALYSES (p 355)
+tsBR1<-zoo(BR1)  #make it a time series object for package zoo
+plot(tsBR1) #plot the time series together
+plot(tsBR1, screens=1) #plot each time series on its own panel
+acf(tsBR1) #plot to see if there is any autocorrelation
+Box.test(tsBR1$PUBS.TOTL, type="Ljung-Box") #test for autocorrelation, using the test for small sample sizes
+pacf(tsBR1$PUBS.TOTL) #plot the partial autocorrelation function 
+ccf(tsBR1$PUBS.,tsBR1$GDP) #look lof lagged autocorrelation 
+#detrend the data - PUBS
+CDBR<-coredata(BR1$PUBS.TOTL)
+INDEXBR<-index(BR1$PUBS.TOTL)
+m<-lm(CDBR~INDEXBR)
+detr<-zoo(resid(m), INDEXBR)
+plot(detr)
+#detrend the data - GDP
+CDBR.GDP<-coredata(BR1$GDP)
+INDEXBR.GDP<-index(BR1$GDP)
+mGDP<-lm(CDBR.GDP~INDEXBR.GDP)
+detrGDP<-zoo(resid(mGDP), INDEXBR.GDP)
+plot(detrGDP)
+#detrend the data - POPSIZE
+CDBR.POP<-coredata(BR1$PopSize)
+INDEXBR.POP<-index(BR1$PopSize)
+mPOP<-lm(CDBR.POP~INDEXBR.POP)
+detrPOP<-zoo(resid(mPOP), INDEXBR.POP)
+plot(detrPOP)
+
+#ARIMA_MODEL- Brazil
+library(forecast)
+auto.arima(tsBR1$PUBS.TOTL)
+arimaBR<-auto.arima(tsBR1$PUBS.TOTL)
+arimaBR
+confint(arimaBR) #confidence intervals onm the coeff. Note that they may not be significant if they include zero
+tsdiag(arimaBR) #Diagnostic tests of the ARIMA model
+
+library(KernSmooth)
+gridsize<-length(BR1$PUBS.TOTL)
+y=BR1$PUBS.TOTL
+t=seq(from=1991,to=2013)
+bw<-dpill(t,y,gridsize=gridsize)
+lp<-locpoly(x=t, y=y, bandwidth=bw, gridsize=gridsize)
+smooth<-lp$y
+plot(smooth)
+plot(BR1$PUBS.TOTL)
+
+#ARIMA_MODEL- Nicaragua
+auto.arima(tsNIC1$PUBS.TOTL)
+arimaNIC<-auto.arima(tsNIC1$PUBS.TOTL)
+arimaNIC
+confint(arimaNIC) #confidence intervals onm the coeff. Note that they may not be significant if they include zero
+tsdiag(arimaNIC) #Diagnostic tests of the ARIMA model
+# 
 
 tsEC1<-zoo(EC1)
 plot(tsEC1)
@@ -68,6 +220,47 @@ acf(tsNIC1)
 Box.test(tsNIC1$PUBS.TOTL, , type="Ljung-Box")
 pacf(tsNIC1$PUBS.TOTL)
 ccf(tsNIC1$PUBS.TOTL,tsNIC1$GDP)
+
+
+
+
+
+
+
+
+
+xv<-seq(1991,2014,1)
+yv<-predict(exponential.model, list(x=xv))
+lines(xv,yv)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+library(tseries)
+bds.test(x, m = 3, eps = seq(0.5 * sd(x), 2 * sd(x), length = 4),
+         trace = FALSE)
+
+
+
 
 
 
