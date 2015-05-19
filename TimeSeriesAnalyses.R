@@ -10,7 +10,6 @@
 
 
 
-require(ggplot2)
 require(mgcv)
 
 condition <- c("GDP", "PopSize", "PUBS.TOTL")
@@ -28,30 +27,83 @@ BR<-brazil
 BR$Country.Name<-NULL
 
 yBR<-BR$PUBS.TOTL
-xBR<-BR$Year
+x1BR<-BR$Year
+x2BR<-BR$GDP
+x3BR<-BR$PopSize
 
-data_plotBR = qplot(xBR, yBR)+theme_bw()
+#pairs(~yBR+x1BR+x2BR+x3BR, main="Scatterplot Matrix")
+
+
+op <- par(mfcol = c(3, 1))
+c11 <- plot(x1BR, yBR, xlab="Year", ylab="pubs", mfg=c(1, 1))
+c21 <- plot(x1BR, x2BR, xlab="Year", ylab="GDP", mfg=c(2, 1))
+c31 <- plot(x1BR, x3BR, xlab="Year", ylab="PopSize", mfg=c(3, 1))
+par(op); #Restore graphics parameters
+
+
+data_plotBR = qplot(x1BR, yBR)+theme_bw()
 print(data_plotBR)
 
 #LINEAR
-lmBR=gam(yBR~xBR)
+lmBR=gam(yBR~x1BR,family=poisson)
 lm_summaryBR=summary(lmBR)
 print(lm_summaryBR)
 data_plotBR = data_plotBR + geom_smooth(colour="blue", method='lm', se=FALSE)
 print(data_plotBR)
 
 #SMOOTHED
-gam_modBR=gam(yBR~s(xBR))
+gam_modBR=gam(yBR~s(x1BR),family=poisson)
 summary(gam_modBR)
 data_plotBR = data_plotBR + geom_smooth(colour="red",aes(yBR=fitted(gam_modBR)), se=FALSE)
 print(data_plotBR)
 plot(gam_modBR)
 
-
 #Is assumption of linearity justified? use gam() and anova(). Must have smoothed model nested in linear one
-lmBR=gam(yBR~xBR)
-nested_gam_modelBR=gam(yBR~s(xBR)+xBR)
+lmBR=gam(yBR~x1BR,family=poisson)
+nested_gam_modelBR=gam(yBR~s(x1BR)+x1BR,family=poisson)
 print(anova(lmBR, nested_gam_modelBR, test="Chisq"))
+#
+
+
+#following Wood pdf
+ct1<-gam(yBR~s(x1BR)+s(x2BR),family=poisson)
+ct1
+par(mfrow=c(1,2))
+plot(ct1,residuals=TRUE,pch=19) ## calls plot.gam
+#Basic Model Checking
+#Deviance residuals are used: often approximately normal.
+#Plots are utterly useless for binary data!
+gam.check(ct1) ## note QQ beefed up for next mgcv version
+#Other residual plots should be examined
+plot(fitted(ct1),residuals(ct1))
+plot(x1BR,residuals(ct1))
+#To check robustness of smoothness selection, fit with an
+#alternative smoothness selection criterion.
+ct2 <- gam(yBR~s(x1BR)+s(x2BR), family=poisson,method="ML")
+ct2
+#Once checking suggests that the model is acceptable, then we
+#can proceed to more formal inference.
+summary(ct1)
+#If you must have p-values, then anova is better for any model
+#containing factor variables
+anova(ct1)
+
+#VISUALIZATIONS
+par(mfrow=c(1,2))
+plot(ct1,shade=TRUE,seWithMean=TRUE,scale=0)
+#Sometimes it is helpful to see how the linear predictor or
+#expected response would vary with 2 predictors, if all the
+#others were held fixed at some value. vis.gam allows this
+vis.gam(ct1,theta=30,ticktype="detailed")
+vis.gam(ct1,theta=-45,ticktype="detailed",se=2)
+vis.gam(ct1,plot.type="contour")
+AIC(ct1,ct2)
+# 
+
+
+
+
+
 
 
 ##BOLIVIA
@@ -64,48 +116,72 @@ bolivia$Indicator.Name<-NULL
 bolivia<-tidyr::spread(bolivia, Indicator.Code, Value)
 BO<-bolivia
 BO$Country.Name<-NULL
-
 yBO<-BO$PUBS.TOTL
-xBO<-BO$Year
+x1BO<-BO$Year
+x2BO<-BO$GDP
+x3BO<-BO$PopSize
 
-data_plotBO=qplot(xBO, yBO)+theme_bw()
+
+data_plotBO = qplot(x1BO, yBO)+theme_bw()
 print(data_plotBO)
 
-
 #LINEAR
-lmBO=gam(yBO~xBO)
+lmBO=gam(yBO~x1BO,family=poisson)
 lm_summaryBO=summary(lmBO)
 print(lm_summaryBO)
 data_plotBO = data_plotBO + geom_smooth(colour="blue", method='lm', se=FALSE)
 print(data_plotBO)
 
 #SMOOTHED
-gam_modBO=gam(yBO~s(xBO))
+gam_modBO=gam(yBO~s(x1BO),family=poisson)
 summary(gam_modBO)
-#data_plotBO = data_plotBO+geom_line(colour="red",aes(yBO=fitted(gam_modBO)))
 data_plotBO = data_plotBO + geom_smooth(colour="red",aes(yBO=fitted(gam_modBO)), se=FALSE)
 print(data_plotBO)
 plot(gam_modBO)
 
 #Is assumption of linearity justified? use gam() and anova(). Must have smoothed model nested in linear one
-lmBO=gam(yBO~xBO)
-nested_gam_modelBO=gam(yBO~s(xBO)+xBO)
+lmBO=gam(yBO~x1BO,family=poisson)
+nested_gam_modelBO=gam(yBO~s(x1BO)+x1BO,family=poisson)
 print(anova(lmBO, nested_gam_modelBO, test="Chisq"))
 
 
 
 
 
+#following Wood pdf
+ct1<-gam(yBO~s(x1BO)+s(x2BO),family=poisson)
+ct1
+par(mfrow=c(1,2))
+plot(ct1,residuals=TRUE,pch=19) ## calls plot.gam
+#Basic Model Checking
+#Deviance residuals are used: often approximately normal.
+#Plots are utterly useless for binary data!
+gam.check(ct1) ## note QQ beefed up for next mgcv version
+#Other residual plots should be examined
+plot(fitted(ct1),residuals(ct1))
+plot(x1BO,residuals(ct1))
+#To check robustness of smoothness selection, fit with an
+#alternative smoothness selection criterion.
+ct2 <- gam(yBO~s(x1BO)+s(x2BO), family=poisson,method="ML")
+ct2
+#Once checking suggests that the model is acceptable, then we
+#can proceed to more formal inference.
+summary(ct1)
+#If you must have p-values, then anova is better for any model
+#containing factor variables
+anova(ct1)
 
-
-
-
-
-
-
-
-
-
+#VISUALIZATIONS
+par(mfrow=c(1,2))
+plot(ct1,shade=TRUE,seWithMean=TRUE,scale=0)
+#Sometimes it is helpful to see how the linear predictor or
+#expected response would vary with 2 predictors, if all the
+#others were held fixed at some value. vis.gam allows this
+vis.gam(ct1,theta=30,ticktype="detailed")
+vis.gam(ct1,theta=-45,ticktype="detailed",se=2)
+vis.gam(ct1,plot.type="contour")
+AIC(gam_modBO, ct1)
+# 
 
 
 # FROM R Cookbook by Teetor
