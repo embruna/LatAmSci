@@ -1,0 +1,35 @@
+# This function takes the WORLD BANK GDP DATA, selects only the countries of interest, and cleans up and reorganizes their data.
+# The countries used here are:ARG BOL BRA CHL COL CRI CUB ECU SLV GTM HND MEX NIC PAN PRY PER URY VEN CAN USA
+
+GDPprep <- function(x) {
+
+  GDPdata<-GDPdata[GDPdata$Country.Code=="ARG" | GDPdata$Country.Code=="BOL"| GDPdata$Country.Code=="BRA" | GDPdata$Country.Code=="CHL" | GDPdata$Country.Code=="COL"
+           | GDPdata$Country.Code=="CRI" | GDPdata$Country.Code=="CUB" | GDPdata$Country.Code=="ECU" | GDPdata$Country.Code=="SLV" | GDPdata$Country.Code=="GTM" 
+           | GDPdata$Country.Code=="HND" | GDPdata$Country.Code=="MEX" | GDPdata$Country.Code=="NIC" | GDPdata$Country.Code=="PAN" | GDPdata$Country.Code=="PRY" 
+           | GDPdata$Country.Code=="PER" | GDPdata$Country.Code=="URY" | GDPdata$Country.Code=="VEN"| GDPdata$Country.Code=="USA"| GDPdata$Country.Code=="CAN",]
+  
+  #clean up name of variable of interest
+  GDPdata$Indicator.Name<-as.factor("GDP")
+  #Add columns with data source
+  GDPdata$Data.Source<-as.factor("WB")
+  GDPdata$Country.Name<-gsub("Venezuela,.RB", "Venezuela", GDPdata$Country.Name)
+  GDPdata$Country.Name<-gsub("El Salvador", "El.Salvador", GDPdata$Country.Name)
+  GDPdata$Country.Name<-gsub("Costa Rica", "Costa.Rica", GDPdata$Country.Name)
+  GDPdata$Country.Name<-as.factor(GDPdata$Country.Name)
+  
+  #Convert to Long Form
+  GDPdata<-gather(GDPdata, "Year", "Value", 5:59)
+  GDPdata$Data.Source<-as.factor("WB")
+  names(GDPdata)[3] <- "Indicator.Code" 
+  names(GDPdata)[4] <- "Indicator.Name" 
+  GDPdata$Year<-gsub("YR", "", GDPdata$Year) #replacing YR with year
+  GDPdata$Year<-as.factor(GDPdata$Year) #setting back as factor
+  GDPdata<-droplevels(GDPdata)
+  
+  #reorder the columns to bind
+  GDPdata<- GDPdata[,c("Country.Name","Country.Code","Indicator.Name","Indicator.Code","Data.Source","Year","Value")] #head(GDPdata)
+  #summary(GDPdata)
+  str(GDPdata)
+  #levels(GDPdata$Country.Name)
+  
+}
