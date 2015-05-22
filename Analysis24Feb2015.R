@@ -1,8 +1,5 @@
 #####TO DO LIST: DATA ENTRY AND MANIPULATION
-
   #Figure out if need HDI. If so, need to reinsert it somewhere
-
-
 #####Analyses and Figures
 #COMPLETE: Figure1: Total Productivity, all countries combined   
 #COMPLETEE Figure2: Map shaded by total pubs over period 1991-2014
@@ -16,14 +13,11 @@
 #Figure8 and Analyses: pubs per $gdp previous year  QUESTION: do this by year? certain year? average of years?
 #Figure9: pubs per education index  QUESTION: do this by year? certain year? average of years?
 
-
 #R CODE FOR IMPORTING, MANIPULATING, AND ANALYZING THE DATASETS USED IN: 
 #install.packages("refnet_0.6.tar.gz", repos=NULL, type="source")
 #setwd("/Users/emiliobruna/Desktop/LATAM Data Updates")
 #setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/refnet")
 ##  Set this to wherever you unzipped the archive folders (not /src):
-
-
 
 #detach(package:refnet, unload=TRUE)
 #remove.packages("refnet")
@@ -48,517 +42,133 @@ library(xts)
 library(zoo)
 
 rm(list=ls())
-
+#LOAD THE NECESSARY FUNCTIONS
+setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/LatAmSci")
+source("QSprep.R")
+source("UniRankSummary.R")
+source("GDPprep.R")
+source("PopSizeprep.R")
+source("RDprep.R")
+source("WBEDprep.R")
+source("UNEDprep.R")
+source("PUBSprep.R")
 ##########################################################################################################################################
 ##########################################################################################################################################
 #######   QS UNIVERSITY RANKINGS DATA. These data are for all countries x years
 #######   Enters data, Summarizes it, and appends 3 leter Country Codes
 ##########################################################################################################################################
 ##########################################################################################################################################
-
-#Read in the QS Rankings Data
 setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/SocioEconomic Data/UniversityRankings") #These data are in a different Folder
 UNIRANK<-read.csv("QS.csv", dec=".", header = TRUE, sep = ",", na.strings='NULL', check.names=FALSE)
-titles<-UNIRANK$category[1:19]
-
-#Convert it from a single column dataframe to a 19x100 dataframe and add column headings
-mat<- matrix(UNIRANK$data, ncol = 19, byrow = T)
-UNIRANK<- as.data.frame(mat, stringsAsFactors = T)
-names(UNIRANK)<-titles
-
-#Add a column with the 3 letter country codes to be consistent with the other datasets
-UNIRANK$Country.Code[UNIRANK$Country.Territory == "AR"]  <- "ARG"
-UNIRANK$Country.Code[UNIRANK$Country.Territory == "Bolivia"]  <- "BOL"
-UNIRANK$Country.Code[UNIRANK$Country.Territory == "BR"]  <- "BRA"
-UNIRANK$Country.Code[UNIRANK$Country.Territory == "CL"]  <- "CHL"
-UNIRANK$Country.Code[UNIRANK$Country.Territory == "CO"]  <- "COL"
-UNIRANK$Country.Code[UNIRANK$Country.Territory == "CR"]  <-"CRI"
-UNIRANK$Country.Code[UNIRANK$Country.Territory == "CU"]  <- "CUB"
-UNIRANK$Country.Code[UNIRANK$Country.Territory == "EC"]  <-"ECU"
-UNIRANK$Country.Code[UNIRANK$Country.Territory == "El Salvador"]  <-"SLV"
-UNIRANK$Country.Code[UNIRANK$Country.Territory == "Guatemala"]  <-"GTM"
-UNIRANK$Country.Code[UNIRANK$Country.Territory == "Honduras"]  <-"HND"
-UNIRANK$Country.Code[UNIRANK$Country.Territory == "MX"]  <-"MEX"
-UNIRANK$Country.Code[UNIRANK$Country.Territory == "Nicaragua"]  <-"NIC"
-UNIRANK$Country.Code[UNIRANK$Country.Territory == "Panama"]  <-"PAN"
-UNIRANK$Country.Code[UNIRANK$Country.Territory == "Paraguay"]  <-"PRY"
-UNIRANK$Country.Code[UNIRANK$Country.Territory == "PR"]  <-"PER"
-UNIRANK$Country.Code[UNIRANK$Country.Territory == "UY"]  <-"URY"
-UNIRANK$Country.Code[UNIRANK$Country.Territory == "VE"]  <-"VEN"
-UNIRANK$Country.Code<-as.factor(UNIRANK$Country.Code)
-#COnvert the ranking in 2012 in case you need to take avg. per country, etc.
-UNIRANK[1]<-as.character(UNIRANK$rank.2012)
-UNIRANK[1]<-as.numeric(UNIRANK$rank.2012)
-
-#Summary of how many of the top 200 university are in each country
-UNIRANK.table<-as.data.frame(table(UNIRANK$Country.Code))
-#Add the countries with NO universities in top 100
-countries.no.u<-as.data.frame(c("BOL", "SLV","GTM","HND", "NIC", "PAN", "PRY"))
-count.no.u<-as.data.frame(c("0","0","0","0", "0", "0", "0"))
-no.u<-cbind(countries.no.u,count.no.u)
-names(no.u)<-c("Var1","Freq")
-UNIRANK.table<-rbind(UNIRANK.table, no.u)
-
-#add columns needed to match other SES data to bind below
-UNIRANK.table$Year<-as.factor("2012")
-UNIRANK.table$Indicator.Code<-as.factor("NumberOfUnivTop100")
-names(UNIRANK.table)[1] <- "Country.Code"
-names(UNIRANK.table)[2] <- "Value"
-UNIRANK.table$Value<-as.numeric(UNIRANK.table$Value)
-
-#Put in the format to bind all the datasets together.
-UNIRANK.table$Country.Name<-NA
-UNIRANK.table$Data.Source<-as.factor("QC")
-UNIRANK.table$Indicator.Name<-as.factor("TopUnis")
-#Change the values of the 
-UNIRANK.table$Country.Name[UNIRANK.table$Country.Code == "ARG"]  <-"Argentina"
-UNIRANK.table$Country.Name[UNIRANK.table$Country.Code == "BOL"]  <- "Bolivia"
-UNIRANK.table$Country.Name[UNIRANK.table$Country.Code == "BRA"]  <- "Brazil"
-UNIRANK.table$Country.Name[UNIRANK.table$Country.Code == "CHL"]  <- "Chile"
-UNIRANK.table$Country.Name[UNIRANK.table$Country.Code == "COL"]  <-"Colombia"
-UNIRANK.table$Country.Name[UNIRANK.table$Country.Code == "CRI"]  <-"Costa.Rica"
-UNIRANK.table$Country.Name[UNIRANK.table$Country.Code == "CUB"]  <- "Cuba"
-UNIRANK.table$Country.Name[UNIRANK.table$Country.Code == "ECU"]  <-"Ecuador"
-UNIRANK.table$Country.Name[UNIRANK.table$Country.Code == "SLV"]  <-"El.Salvador"
-UNIRANK.table$Country.Name[UNIRANK.table$Country.Code == "GTM"]  <-"Guatemala"
-UNIRANK.table$Country.Name[UNIRANK.table$Country.Code == "HND"]  <-"Honduras"
-UNIRANK.table$Country.Name[UNIRANK.table$Country.Code == "MEX"]  <-"Mexico"
-UNIRANK.table$Country.Name[UNIRANK.table$Country.Code == "NIC"]  <-"Nicaragua"
-UNIRANK.table$Country.Name[UNIRANK.table$Country.Code == "PAN"]  <-"Panama"
-UNIRANK.table$Country.Name[UNIRANK.table$Country.Code == "PRY"]  <-"Paraguay"
-UNIRANK.table$Country.Name[UNIRANK.table$Country.Code == "PER"]  <-"Peru"
-UNIRANK.table$Country.Name[UNIRANK.table$Country.Code == "URY"]  <-"Uruguay"
-UNIRANK.table$Country.Name[UNIRANK.table$Country.Code == "VEN"]  <-"Venezuela"
-UNIRANK.table$Country.Name<-as.factor(UNIRANK.table$Country.Name)
-
-#reorder the columns to bind
-UNIRANK.table<- UNIRANK.table[,c("Country.Name","Country.Code","Indicator.Name","Indicator.Code","Data.Source","Year","Value")] 
-str(UNIRANK.table)
+setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/LatAmSci")
+#This will use function QSprep to read and clean data and return a dataframe of the top 100 Universities in Latin America in 20012 based on the QS University Rankings
+UNIRANK<-QSprep(UNIRANK)
+#Use function UniRankSummary to produce a summary table of how manu institutions are in each country
+UNIRANK.table<-UniRankSummary(UNIRANK)
+#str(UNIRANK.table)
 #summary(UNIRANK.table)
 #levels(UNIRANK.table$Country.Name)
-
-
-
 ##########################################################################################################################################
 ##########################################################################################################################################
 #######  WORLD BANK GDP DATA. In World Bank data each country has a code. We import the entire dataset, then
 #######  select just countries of in our study:ARG BOL BRA CHL COL CRI CUB ECU SLV GTM HND MEX NIC PAN PRY PER URY VEN
 ##########################################################################################################################################
 ##########################################################################################################################################
-
-
-#Importing the GDP Data. These data are for all countries x years, so will need to select just the years of interest and the countries in the analyses
 setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/SocioEconomic Data/GDP_WorldBank_Global") #These data are in a different Folder
-GDP<-read.csv("GDP.csv", dec=".", header = TRUE, sep = ",", check.names=FALSE)
-GDP<-GDP[GDP$Country.Code=="ARG" | GDP$Country.Code=="BOL"| GDP$Country.Code=="BRA" | GDP$Country.Code=="CHL" | GDP$Country.Code=="COL"
-         | GDP$Country.Code=="CRI" | GDP$Country.Code=="CUB" | GDP$Country.Code=="ECU" | GDP$Country.Code=="SLV" | GDP$Country.Code=="GTM" 
-         | GDP$Country.Code=="HND" | GDP$Country.Code=="MEX" | GDP$Country.Code=="NIC" | GDP$Country.Code=="PAN" | GDP$Country.Code=="PRY" 
-         | GDP$Country.Code=="PER" | GDP$Country.Code=="URY" | GDP$Country.Code=="VEN",]
-#clean up name of variable of interest
-GDP$Indicator.Name<-as.factor("GDP")
-#Add columns with data source
-GDP$Data.Source<-as.factor("WB")
-GDP$Country.Name<-gsub("Venezuela,.RB", "Venezuela", GDP$Country.Name)
-GDP$Country.Name<-gsub("El Salvador", "El.Salvador", GDP$Country.Name)
-GDP$Country.Name<-gsub("Costa Rica", "Costa.Rica", GDP$Country.Name)
-GDP$Country.Name<-as.factor(GDP$Country.Name)
-
-#Convert to Long Form
-GDP<-gather(GDP, "Year", "Value", 5:59)
-GDP$Data.Source<-as.factor("WB")
-names(GDP)[3] <- "Indicator.Code" 
-names(GDP)[4] <- "Indicator.Name" 
-GDP$Year<-gsub("YR", "", GDP$Year) #replacing YR with year
-GDP$Year<-as.factor(GDP$Year) #setting back as factor
-GDP<-droplevels(GDP)
-
-#reorder the columns to bind
-GDP<- GDP[,c("Country.Name","Country.Code","Indicator.Name","Indicator.Code","Data.Source","Year","Value")] #head(GDP)
-#summary(GDP)
-str(GDP)
-#levels(GDP$Country.Name)
-
-
-
+GDPdata<-read.csv("GDP.csv", dec=".", header = TRUE, sep = ",", check.names=FALSE)
+# Note that while we have GDP data for the entire world, the function only selects the data for the countries of 
+# interest.If you want to add or delete countries you need to do it from inside the function.  It would probably 
+# be a good idea to change this main code later so that country slection is made here
+#Use function GDPprep to clean and standardize the GDP Data
+GDP<-GDPprep(GDPdata)  
 ##########################################################################################################################################
 ##########################################################################################################################################
 #######  COUNTRY TOTAL POPULATION SIZE DATA. Data are for all countries and years, so will need to select just the years of interest 
 #######  select just countries of in our study: ARG BOL BRA CHL COL CRI CUB ECU SLV GTM HND MEX NIC PAN PRY PER URY VEN
 ##########################################################################################################################################
 ##########################################################################################################################################
-
-
 #Importing the PopSize Data. #These data are in a different Folder
 setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/SocioEconomic Data/worldBank_PopSize") 
-PopSize<-read.csv("PopSize.csv", dec=".", header = TRUE, sep = ",", check.names=FALSE)
-
-PopSize<-PopSize[PopSize$Country.Code=="ARG" | PopSize$Country.Code=="BOL"| PopSize$Country.Code=="BRA" | PopSize$Country.Code=="CHL" | PopSize$Country.Code=="COL"
-                 | PopSize$Country.Code=="CRI" | PopSize$Country.Code=="CUB" | PopSize$Country.Code=="ECU" | PopSize$Country.Code=="SLV" | PopSize$Country.Code=="GTM" 
-                 | PopSize$Country.Code=="HND" | PopSize$Country.Code=="MEX" | PopSize$Country.Code=="NIC" | PopSize$Country.Code=="PAN" | PopSize$Country.Code=="PRY" 
-                 | PopSize$Country.Code=="PER" | PopSize$Country.Code=="URY" | PopSize$Country.Code=="VEN",]
-PopSize<-PopSize[, -(5:30)]
-PopSize$Data.Source<-as.factor("WB")
-PopSize$Indicator.Name<-as.factor("PopSize")
-PopSize$Country.Name<-gsub("Venezuela,.RB", "Venezuela", PopSize$Country.Name)
-PopSize$Country.Name<-gsub("El Salvador", "El.Salvador", PopSize$Country.Name)
-PopSize$Country.Name<-gsub("Costa Rica", "Costa.Rica", PopSize$Country.Name)
-PopSize$Country.Name<-as.factor(PopSize$Country.Name)
-summary(PopSize)
-
-#Convert to Long Form
-PopSize<-gather(PopSize, "Year", "Value", 5:33)
-PopSize$Data.Source<-as.factor("WB")
-names(PopSize)[3] <- "Indicator.Code" 
-names(PopSize)[4] <- "Indicator.Name" 
-PopSize$Year<-gsub("YR", "", PopSize$Year) #replacing YR with year
-PopSize$Year<-as.factor(PopSize$Year) #setting back as factor
-PopSize<-droplevels(PopSize)
-str(PopSize)
-#reorder the columns to bind
-PopSize<- PopSize[,c("Country.Name","Country.Code","Indicator.Name","Indicator.Code","Data.Source","Year","Value")] #head(PopSize)
-#summary(PopSize)
-str(PopSize)
-
-
-
+PopSizeData<-read.csv("PopSize.csv", dec=".", header = TRUE, sep = ",", check.names=FALSE)
+#Use function PopSizeprep to clean and standardize the World Bank Population Total Size Data
+PopSize<-PopSizeprep(PopSizeData)  
 ##########################################################################################################################################
 ##########################################################################################################################################
 #######  UNESCO R&D DATA. Data are for all countries and years, so will need to select just the years of interest 
 #######  select just countries of in our study: ARG BOL BRA CHL COL CRI CUB ECU SLV GTM HND MEX NIC PAN PRY PER URY VEN
 ##########################################################################################################################################
 ##########################################################################################################################################
-
 #Importing the Investment in R&D Data. 
 setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/SocioEconomic Data/R&D (% of GDP)")
-RD<-read.csv("R&D.csv", dec=".", header = TRUE, sep = ",", check.names=FALSE)
-RD<-RD[RD$Country.Code=="ARG" | RD$Country.Code=="BOL"| RD$Country.Code=="BRA" | RD$Country.Code=="CHL" | RD$Country.Code=="COL"
-         | RD$Country.Code=="CRI" | RD$Country.Code=="CUB" | RD$Country.Code=="ECU" | RD$Country.Code=="SLV" | RD$Country.Code=="GTM" 
-         | RD$Country.Code=="HND" | RD$Country.Code=="MEX" | RD$Country.Code=="NIC" | RD$Country.Code=="PAN" | RD$Country.Code=="PRY" 
-         | RD$Country.Code=="PER" | RD$Country.Code=="URY" | RD$Country.Code=="VEN",]
-
-
-RD$Data.Source<-as.factor("UNESCO")
-RD$Indicator.Name<-as.factor("R&D")
-RD$Country.Name<-gsub("Venezuela,.RB", "Venezuela", RD$Country.Name)
-RD$Country.Name<-gsub("El Salvador", "El.Salvador", RD$Country.Name)
-RD$Country.Name<-gsub("Costa Rica", "Costa.Rica", RD$Country.Name)
-RD$Country.Name<-as.factor(RD$Country.Name)
-
-#Convert to Long Form
-RD<-gather(RD, "Year", "Value", 5:59)
-RD$Data.Source<-as.factor("WB")
-names(RD)[3] <- "Indicator.Code" 
-names(RD)[4] <- "Indicator.Name" 
-RD$Year<-gsub("YR", "", RD$Year) #replacing YR with year
-RD$Year<-as.factor(RD$Year) #setting back as factor
-RD<-droplevels(RD)
-str(RD)
-#reorder the columns to bind
-RD<- RD[,c("Country.Name","Country.Code","Indicator.Name","Indicator.Code","Data.Source","Year","Value")] #head(RD)
-#summary(RD)
-summary(RD)
-str(RD)
-
+RDData<-read.csv("R&D.csv", dec=".", header = TRUE, sep = ",", check.names=FALSE)
+#Use function RDprep to clean and standardize the % GD Devoted to RD Data
+RD<-RDprep(RDData)  
 ##########################################################################################################################################
 ##########################################################################################################################################
 #######   WORLD BANK EDUCATION DATA. These data are for all countries x years
 #######   Need to select just the years of interest and the countries in the analyses
 ##########################################################################################################################################
 ##########################################################################################################################################
-
 setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/SocioEconomic Data/WorldBank_ED")
-WBED<-read.csv("WorldBankEdData.csv", dec=".", header = TRUE, sep = ",", check.names=FALSE)
-WBED<-WBED[WBED$Country.Code=="ARG" | WBED$Country.Code=="BOL"| WBED$Country.Code=="BRA" | WBED$Country.Code=="CHL" | WBED$Country.Code=="COL"
-       | WBED$Country.Code=="CRI" | WBED$Country.Code=="CUB" | WBED$Country.Code=="ECU" | WBED$Country.Code=="SLV" | WBED$Country.Code=="GTM" 
-       | WBED$Country.Code=="HND" | WBED$Country.Code=="MEX" | WBED$Country.Code=="NIC" | WBED$Country.Code=="PAN" | WBED$Country.Code=="PRY" 
-       | WBED$Country.Code=="PER" | WBED$Country.Code=="URY" | WBED$Country.Code=="VEN",]
-#Reduces it down to juyst the countries for which you have a assigned a code.
-WBED<-WBED[complete.cases(WBED[,"Country.Code"]),]
-#Correct the names of 2 of the countries
-WBED$Country.Name<-gsub("Venezuela,.RB", "Venezuela", WBED$Country.Name)
-WBED$Country.Name<-gsub("El Salvador", "El.Salvador", WBED$Country.Name)
-WBED$Country.Name<-gsub("Costa Rica", "Costa.Rica", WBED$Country.Name)
-WBED$Country.Name<-as.factor(WBED$Country.Name)
-
-
-########Convert to Long
-WBED<-gather(WBED, "Year", "Value", 5:47)
-WBED$Data.Source<-as.factor("WBED")
-names(WBED)[3] <- "Indicator.Code" 
-names(WBED)[4] <- "Indicator.Name" 
-WBED$Year<-gsub("YR", "", WBED$Year) #replacing YR with year
-WBED$Year<-as.factor(WBED$Year) #setting back as factor
-WBED<-droplevels(WBED)
-
-#reorder the columns to bind
-WBED<- WBED[,c("Country.Name","Country.Code","Indicator.Name","Indicator.Code","Data.Source","Year","Value")] #head(WBED)
-summary(WBED)
-str(WBED)
-
+WBEDdata<-read.csv("WorldBankEdData.csv", dec=".", header = TRUE, sep = ",", check.names=FALSE)
+#Use function WBEDprep to clean and standardize the WorldBank Education Data
+WBED<-WBEDprep(WBEDdata)  
 ##########################################################################################################################################
 ##########################################################################################################################################
 #######   UN EDUCATION DATA. These data are for all countries x years
 #######   Need to select just the years of interest and the countries in the analyses
 ##########################################################################################################################################
 ##########################################################################################################################################
-
 #Importing the UNDP ED Data. 
 setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/SocioEconomic Data/UNDP_ED")
-UNED<-read.csv("UNDP_EdIndex.csv", dec=".", header = TRUE, sep = ",", na.strings='NULL', check.names=FALSE)
-
-#Correct name of two of the countries
-UNED$Country<-gsub(" ", ".", UNED$Country)
-UNED$Country[UNED$Country == "Venezuela.(Bolivarian.Republic.of)"] <- "Venezuela"
-UNED$Country[UNED$Country == "Bolivia.(Plurinational.State.of)"] <- "Bolivia"
-UNED$Country<-as.factor(UNED$Country)
-
-UNED$Country.Code<- NA
-UNED$Country.Code[UNED$Country == "Argentina"]  <- "ARG"
-UNED$Country.Code[UNED$Country == "Bolivia"]  <- "BOL"
-UNED$Country.Code[UNED$Country == "Brazil"]  <- "BRA"
-UNED$Country.Code[UNED$Country == "Chile"]  <- "CHL"
-UNED$Country.Code[UNED$Country == "Costa.Rica"]  <-"CRI"
-UNED$Country.Code[UNED$Country == "Colombia"]  <- "COL"
-UNED$Country.Code[UNED$Country == "Cuba"]  <- "CUB"
-UNED$Country.Code[UNED$Country == "Ecuador"]  <-"ECU"
-UNED$Country.Code[UNED$Country == "El.Salvador"]  <-"SLV"
-UNED$Country.Code[UNED$Country == "Guatemala"]  <-"GTM"
-UNED$Country.Code[UNED$Country == "Honduras"]  <-"HND"
-UNED$Country.Code[UNED$Country == "Mexico"]  <-"MEX"
-UNED$Country.Code[UNED$Country == "Nicaragua"]  <-"NIC"
-UNED$Country.Code[UNED$Country == "Panama"]  <-"PAN"
-UNED$Country.Code[UNED$Country == "Paraguay"]  <-"PRY"
-UNED$Country.Code[UNED$Country == "Peru"]  <-"PER"
-UNED$Country.Code[UNED$Country == "Uruguay"]  <-"URY"
-UNED$Country.Code[UNED$Country == "Venezuela"]  <-"VEN"
-UNED<-UNED[complete.cases(UNED[,"Country.Code"]),] #Reduces it down to juyst the countries for which you have a assigned a code.
-UNED$Country.Code<-as.factor(UNED$Country.Code) #they were being converted as characters, so convert them to factors
+UNEDdata<-read.csv("UNDP_EdIndex.csv", dec=".", header = TRUE, sep = ",", na.strings='NULL', check.names=FALSE)
+#Use function UNEDprep to clean and standardize the UN Education Data
+UNED<-UNEDprep(UNEDdata)  
+##########################################################################################################################################
+##########################################################################################################################################
+####  READ IN THE PUBLICATION DATA (NOT USING REFNET)
+##########################################################################################################################################
+##########################################################################################################################################
+#Read in the data of publications per year per country
+setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience") 
+PUBSdata<-read.csv("PUBCOUNT_21may2015.csv", dec=".", header = TRUE, sep = ",", na.strings='NULL', check.names=FALSE)
+#Use the function PUBSprep clean and standardize the Publication Data
+PUBS<-PUBSprep(PUBSdata)  
 
 
-#CONVERT TO LONG
-UNED$HDI.Rank<- NULL #delete the column with HDI rank - this is for only one year, so best left to getting it elsewhere
-UNED<-gather(UNED, "Year", "Value", 2:15)
-UNED$Year<-gsub("YR", "", UNED$Year) #deleting YR
-UNED$Year<-as.factor(UNED$Year) #setting back as factor
-UNED$Data.Source<-as.factor("UN_ED")
-UNED$Indicator.Name<-as.factor("UNED")
-UNED$Indicator.Code<-as.factor("UN.ED.Index")
-names(UNED)[1] <- "Country.Name" 
-UNED<-droplevels(UNED)
-UNED<- UNED[,c("Country.Name","Country.Code","Indicator.Name","Indicator.Code","Data.Source","Year","value")] #reorder the columns to bind
-#head(UNED)
-#summary(UNED)
+##########################################################################################################################################
+##########################################################################################################################################
+####  NA reminder of the datasets you have and their structire
+##########################################################################################################################################
+##########################################################################################################################################
+
 str(UNED)
-
-
-
-##########################################################################################################################################
-##########################################################################################################################################
-####  Now subset and bind all the SES / ED/ PopSize Data Together
-##########################################################################################################################################
-##########################################################################################################################################
-
-####HERE YOU CAN DECIDE WHAT WORLD BANK DATA TO USE. 
-###I STARTED BY TOGGLING ON Public.expenditure.on.education.as.%.of.GDP
-
-WBED<-filter(WBED, Indicator.Name == "SE.XPD.TOTL.GD.ZS")
-
-#The $ invested in R&D, GDP and PopSize data are the same dimensions and all in wide form
-#start by rowbinding them then converitng to long form
-SESdata<-rbind(PopSize,GDP,RD, WBED, UNED, UNIRANK.table)
-str(SESdata)
-droplevels(SESdata)
-summary(SESdata)
+str(WBED)
+str(GDP)
+str(PopSize)
+str(RD)
+str(PUBS)
 
 ####################
 ####################
-###THIS SECTION IMPORTS PUBLICATIONS DATA from 2001-2014. 
-###THE DATA HAVE TO BE IN THE REFNET FOLDER, SO THE WORKING DIRECTORY IS CHANGED BELOW
+### To Choose what data and years you want for the data to be analyzed
 ####################
 ####################
+#For example
+GDP<-filter(GDP, Year >= 1990)
+GDP<-droplevels(GDP)
+summary(GDP)
+str(GDP)
 
-setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/refnet")
-
-##	Let's read in single files, though we can specify a directory and 
-##		set the dir=TRUE flag and read in an entire directory of files.
-##		If the filename_root argument is not "" then it is used to create
-##		the root filenames for CSV output:
-ecuador_references <- read_references("data/Ecuador_2001-2014.txt", dir=FALSE, filename_root="output/ecuador")
-bolivia_references <- read_references("data/Bolivia_2001-2014.txt", dir=FALSE, filename_root="output/bolivia")
-argentina_references <- read_references("data/Argentina_2001-2014.txt", dir=FALSE, filename_root="output/argentina")
-brazil_references <- read_references("data/Brazil_2001-2014.txt", dir=FALSE, filename_root="output/brazil")
-chile_references <- read_references("data/Chile_2001-2014.txt", dir=FALSE, filename_root="output/chile")
-colombia_references <- read_references("data/Colombia_2001-2014.txt", dir=FALSE, filename_root="output/colombia")
-costarica_references <- read_references("data/Costa Rica_2001-2014.txt", dir=FALSE, filename_root="output/costarica")
-cuba_references <- read_references("data/Cuba_2001-2014.txt", dir=FALSE, filename_root="output/cuba")
-elsalvador_references <- read_references("data/El Salvador_2001-2014.txt", dir=FALSE, filename_root="output/elsalvador")
-guatemala_references <- read_references("data/Guatemala_2001-2014.txt", dir=FALSE, filename_root="output/guatemala")
-honduras_references <- read_references("data/Honduras_2001-2014.txt", dir=FALSE, filename_root="output/honduras")
-mexico_references <- read_references("data/Mexico_2001-2014.txt", dir=FALSE, filename_root="output/mexico")
-nicaragua_references <- read_references("data/Nicaragua_2001-2014.txt", dir=FALSE, filename_root="output/nicaragua")
-panama_references <- read_references("data/Panama_2001-2014.txt", dir=FALSE, filename_root="output/panama")
-paraguay_references <- read_references("data/Paraguay_2001-2014.txt", dir=FALSE, filename_root="output/paraguay")
-peru_references <- read_references("data/Peru_2001-2014.txt", dir=FALSE, filename_root="output/peru")
-uruguay_references <- read_references("data/Uruguay_2001-2014.txt", dir=FALSE, filename_root="output/uruguay")
-venezuela_references <- read_references("data/Venezuela_2001-2014.txt", dir=FALSE, filename_root="output/venezuela")
-
-pubs<-rbind(ecuador_references, bolivia_references, argentina_references, brazil_references, chile_references, 
-                  colombia_references, costarica_references,cuba_references, elsalvador_references,guatemala_references, 
-                  honduras_references, mexico_references, nicaragua_references,panama_references, paraguay_references, 
-                  peru_references, uruguay_references, venezuela_references)
-
-
-#Extract only thro country and year of each publication to plot them over time
-output_by_year<-pubs[,c("filename","PY")]
-#Change the names of the columns
-colnames(output_by_year) <- c("country", "year")
-
-#need to clean up this dataframe
-#remove the extraneous characters ("\n" in column 'country' and "data/", "_2001-2014.txt"in column filename 'year')
-wordstoremove <- c("\n", "data/", "_2001-2014.txt")
-
-output_by_year <- as.data.frame(sapply(output_by_year, function(x) 
-  gsub(paste(wordstoremove, collapse = '|'), '', x)))
-
-
-#Now start doing so me tabulating and joining with data from previous ytears
-#table of the number of papers by each country in each year (2001-2014)
-yearly_prod<-table(output_by_year$country, output_by_year$year)
-yearly_prod<-as.data.frame(yearly_prod, stringsAsFactors=TRUE)
-colnames(yearly_prod) <- c("country", "year", "articles")
-
-
-####################
-####################
-###THIS SECTION IMPORTS PUBLICATIONS DATA from 1991-2000. 
-###THE DATA ARE **NOT** in REFNET FOLDER, SO THE WORKING DIRECTORY IS CHANGED BELOW THEN CHANGED BACK
-####################
-####################
-
-setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience") #These data are in a different Folder
-early_data<-read.csv("productivity_data_1991-2000.csv", dec=".", header = TRUE, sep = ",", check.names=FALSE)
-setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/refnet") #Go back to original WD
-as.data.frame(early_data)
-
-####################
-####################
-###Now Bind the 1991-2000 and 2001-2014 DATA together
-####################
-####################
-
-pubs<-rbind(early_data, yearly_prod)
-pubs$year<-as.numeric(pubs$year)
-pubs<-pubs[order(pubs$country, pubs$year),] 
-
-#Add a column with the World Bank
-pubs$Country.Code<- NA
-
-pubs$Country.Code[pubs$country == "Argentina"]  <-"ARG"
-pubs$Country.Code[pubs$country == "Bolivia"]  <- "BOL"
-pubs$Country.Code[pubs$country == "Brazil"]  <- "BRA"
-pubs$Country.Code[pubs$country == "Chile"]  <- "CHL"
-pubs$Country.Code[pubs$country == "Colombia"]  <-"COL"
-pubs$Country.Code[pubs$country == "Costa Rica"]  <-"CRI"
-pubs$Country.Code[pubs$country == "Cuba"]  <- "CUB"
-pubs$Country.Code[pubs$country == "Ecuador"]  <-"ECU"
-pubs$Country.Code[pubs$country == "El Salvador"]  <-"SLV"
-pubs$Country.Code[pubs$country == "Guatemala"]  <-"GTM"
-pubs$Country.Code[pubs$country == "Honduras"]  <-"HND"
-pubs$Country.Code[pubs$country == "Mexico"]  <-"MEX"
-pubs$Country.Code[pubs$country == "Nicaragua"]  <-"NIC"
-pubs$Country.Code[pubs$country == "Panama"]  <-"PAN"
-pubs$Country.Code[pubs$country == "Paraguay"]  <-"PRY"
-pubs$Country.Code[pubs$country == "Peru"]  <-"PER"
-pubs$Country.Code[pubs$country == "Uruguay"]  <-"URY"
-pubs$Country.Code[pubs$country == "Venezuela"]  <-"VEN"
-pubs$Country.Code<-as.factor(pubs$Country.Code)
-pubs$Data.Source<-as.factor("EB&WH")
-summary(pubs)
-
-#Cleanup and sorting to merge the publications and the 3 indicators dataframes
-#head(pubs)
-#summary(pubs)
-#head(SESdata)
-#summary(SESdata)
-#str(SESdata)
-#str(pubs)
-
-#Add columns and rename to match SESData
-names(pubs)[1:3] <- c("Country.Name", "Year", "Value")  #need to rename the columns
-pubs$Indicator.Code<-as.factor("PUBS.TOTL")                        #add a few new columns
-pubs$Indicator.Name<-as.factor("Articles")                         #add a few new columns
-
-names(UNED)[1] <- "Country.Name"                             #need to rename the columns
-UNED$Indicator.Code<-as.factor("UN.ED")                                 #add a few new columns
-UNED$Indicator.Name<-as.factor("UN Education Index")                    #add a few new columns
-
-names(WBED)[3] <- "Indicator.Name"                             #need to rename the columns
-names(WBED)[4] <- "Indicator.Code"                             #need to rename the columns
-
-#Coonvert year to a number (it was previously a factor)  #note can't just use as.numeric
-#the reason is here http://stackoverflow.com/questions/3418128/how-to-convert-a-factor-to-an-integer-numeric-without-a-loss-of-information
-SESdata$Year<-as.numeric(levels(SESdata$Year))[SESdata$Year] 
-UNED$Year<-as.numeric(levels(UNED$Year))[UNED$Year] 
-WBED$Year<-as.numeric(levels(WBED$Year))[WBED$Year] 
-
-#Sort it first within a frame by rows....
-SESdata<-SESdata[order(SESdata$Country.Name, SESdata$Year),]
-pubs<-pubs[order(pubs$Country.Name, pubs$Year),]
-UNED<-UNED[order(UNED$Country.Name, UNED$Year),]
-WBED<-WBED[order(WBED$Country.Name, WBED$Year),]
-#....and then sort by coloumn names
-SESdata<-SESdata[,order(names(SESdata))]
-pubs<-pubs[,order(names(pubs))]
-UNED<-UNED[,order(names(UNED))]
-WBED<-WBED[,order(names(WBED))]
-
-##The following were are here to help with 2x data cleanup cleanup
-#head(pubs)
-#head(SESdata)
-#head(UNED)
-#head(WBED)
-#str(WBED)
-#str(SESdata)
-#str(pubs)
-#str(UNED)
-
-
-####################
-####################
-###Now Bind pubs data to SES data
-####################
-####################
-
-ALLDATA<-rbind(pubs,SESdata)
-str(ALLDATA)
-summary(ALLDATA)
-
-####################
-####################
-###Now Choose whatyears you want for the data
-####################
-####################
-ALLDATA<-filter(ALLDATA, Year >= 1986)
-
-ALLDATA<-droplevels(ALLDATA)
-summary(ALLDATA)
-str(ALLDATA)
-
-#mytable <- xtabs(~Country.Code+Indicator.Code+Year, data=ALLDATA)
-#ftable(mytable) # print table
-#FOO<-filter(ALLDATA, Indicator.Name == "------")
 
 ######################################
 ######################################
-##  Now some analyses and figures
+##  Now some analyses and figures - THese will need to be revised since I know have seperate datasets instead of one giant
 ######################################
 ######################################
-
 ####################
 # visualizations of individual independent variables
 ####################
-
-
 #R&D Box Plot
 
 boxplot(Value~Country.Code,data=SESdata[SESdata$Indicator.Code=="R&D",], main="RD", xlab="Ncountry", ylab="median val")
@@ -603,19 +213,19 @@ qplot(PopSize, GDP, data = POP2) + facet_wrap(~ Country.Name, scales = "free")
 #some figures using ggplot2
 
 #FIGURE 1 TOTAL PRODUCTIVITY BY YEAR
-Fig1<-ALLDATA[ALLDATA$Indicator.Name=="Articles",]
+Fig1<-ALLDATA[ALLDATA$Indicator.Name=="Publications",]
 Fig1[complete.cases(Fig1),]
 Fig1<-as.data.frame(tapply(Fig1$Value, Fig1$Year, sum))
-names(Fig1)[1] <- "articles" #need to rename the column after tapply
+names(Fig1)[1] <- "Publications" #need to rename the column after tapply
 Fig1$year<-c(1991:2014)
-MyFig1<-qplot(year,articles, data = Fig1, geom="line", main = "Articles with Latin American Authors/Co-Authors, 1991-2014")
+MyFig1<-qplot(year,Publications, data = Fig1, geom="line", main = "Articles with Latin American Authors/Co-Authors, 1991-2014")
 MyFig1 + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
                              panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
 
 
 
 #Figure 2: 
-Fig2<-ALLDATA[ALLDATA$Indicator.Name=="Articles",]
+Fig2<-ALLDATA[ALLDATA$Indicator.Name=="Publications" ,]
 Fig2[complete.cases(Fig2),]
 Fig2<-aggregate(Value ~ Country.Name+Country.Code, data = Fig2, sum)
 perc.total<-(Fig2$Value/sum(Fig2$Value))*100
@@ -650,7 +260,7 @@ mapCountryData(sPDFmyCountries, nameColumnToPlot="perc.total", catMethod="catego
 
 
 #Fig4a is line chart of productivity per year per country
-Fig4a<-ALLDATA[ALLDATA$Indicator.Name=="Articles",]
+Fig4a<-ALLDATA[ALLDATA$Indicator.Name=="Publications",]
 Fig4a[complete.cases(Fig4a),]
 MyFig4a<-qplot(Year, Value, data = Fig4a, color = Country.Name, geom = "line",
       colour = Country.Name,

@@ -3,9 +3,6 @@
 # on each of the ranking criteria. 
 
 QSprep <- function(x) {
-  setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/SocioEconomic Data/UniversityRankings") #These data are in a different Folder
-  
-  UNIRANK<-read.csv("QS.csv", dec=".", header = TRUE, sep = ",", na.strings='NULL', check.names=FALSE)
   titles<-UNIRANK$category[1:19]
   titles<-UNIRANK$category[1:19]
   
@@ -38,5 +35,5 @@ QSprep <- function(x) {
   UNIRANK[1]<-as.character(UNIRANK$rank.2012)
   UNIRANK[1]<-as.numeric(UNIRANK$rank.2012)
   UNIRANK$Country.Territory<- NULL
-  UNIRANK
+  #UNIRANK
 }
