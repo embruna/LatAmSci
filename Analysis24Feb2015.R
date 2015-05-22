@@ -21,25 +21,25 @@
 
 #detach(package:refnet, unload=TRUE)
 #remove.packages("refnet")
-library(maptools)
-library(reshape2)
-library(rworldmap)
-library(RecordLinkage)
-library(igraph)
-library(network)
-library(sna)
-library(Hmisc)
-library(refnet)
-library(ggplot2)
+# library(maptools)
+# library(reshape2)
+# library(rworldmap)
+# library(RecordLinkage)
+# library(igraph)
+# library(network)
+# library(sna)
+# library(Hmisc)
+# library(refnet)
+# library(ggplot2)
 library(dplyr)
 library(tidyr)
-library(rgdal)
+# library(rgdal)
 #require(refnet)
 #library(raster)
 #library(colorspace)
-library(RColorBrewer)
-library(xts)
-library(zoo)
+# library(RColorBrewer)
+# library(xts)
+# library(zoo)
 
 rm(list=ls())
 #LOAD THE NECESSARY FUNCTIONS
@@ -52,94 +52,78 @@ source("RDprep.R")
 source("WBEDprep.R")
 source("UNEDprep.R")
 source("PUBSprep.R")
-##########################################################################################################################################
-##########################################################################################################################################
-#######   QS UNIVERSITY RANKINGS DATA. These data are for all countries x years
-#######   Enters data, Summarizes it, and appends 3 leter Country Codes
-##########################################################################################################################################
-##########################################################################################################################################
-setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/SocioEconomic Data/UniversityRankings") #These data are in a different Folder
+
+
+#Load the datasets
+setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/Data") #These data are in a different Folder from the code
+#Importing QS UNIVERSITY RANKINGS DATA on Latin America's top 100 Universities
 UNIRANK<-read.csv("QS.csv", dec=".", header = TRUE, sep = ",", na.strings='NULL', check.names=FALSE)
-setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/LatAmSci")
-#This will use function QSprep to read and clean data and return a dataframe of the top 100 Universities in Latin America in 20012 based on the QS University Rankings
+#Importing World Bank Data on GDP
+GDPdata<-read.csv("GDP.csv", dec=".", header = TRUE, sep = ",", check.names=FALSE)
+#Importing World Bank Data on total population size per country
+PopSizeData<-read.csv("PopSize.csv", dec=".", header = TRUE, sep = ",", check.names=FALSE)
+#Importing the Investment in R&D Data. 
+RDData<-read.csv("R&D.csv", dec=".", header = TRUE, sep = ",", check.names=FALSE)
+#Importing World Bank Education Data
+WBEDdata<-read.csv("WorldBankEdData.csv", dec=".", header = TRUE, sep = ",", check.names=FALSE)
+#Importing data of publications per year per country
+PUBSdata<-read.csv("PUBCOUNT_21may2015.csv", dec=".", header = TRUE, sep = ",", na.strings='NULL', check.names=FALSE)
+#Importing UN Education Data
+UNEDdata<-read.csv("UNDP_EdIndex.csv", dec=".", header = TRUE, sep = ",", na.strings='NULL', check.names=FALSE)
+
+##########################################################################################################################################
+# Uses function QSprep to read QS UNIVERSITY RANKINGS DATA, organize it to match the other datassets, and return a dataframe
+#   of the top 100 Universities in Latin America in 20012 based on the QS University Rankings
 UNIRANK<-QSprep(UNIRANK)
+##########################################################################################################################################
+
+##########################################################################################################################################
 #Use function UniRankSummary to produce a summary table of how manu institutions are in each country
 UNIRANK.table<-UniRankSummary(UNIRANK)
-#str(UNIRANK.table)
-#summary(UNIRANK.table)
-#levels(UNIRANK.table$Country.Name)
 ##########################################################################################################################################
+
 ##########################################################################################################################################
-#######  WORLD BANK GDP DATA. In World Bank data each country has a code. We import the entire dataset, then
-#######  select just countries of in our study:ARG BOL BRA CHL COL CRI CUB ECU SLV GTM HND MEX NIC PAN PRY PER URY VEN
-##########################################################################################################################################
-##########################################################################################################################################
-setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/SocioEconomic Data/GDP_WorldBank_Global") #These data are in a different Folder
-GDPdata<-read.csv("GDP.csv", dec=".", header = TRUE, sep = ",", check.names=FALSE)
+# Use function GDPprep to clean and standardize the WORLD BANK GDP DATA. 
+# In World Bank data each country has a code. We import the entire dataset, then
+# select just countries of in our study:ARG BOL BRA CHL COL CRI CUB ECU SLV GTM HND MEX NIC PAN PRY PER URY VEN CAN USA
+GDP<-GDPprep(GDPdata)  
 # Note that while we have GDP data for the entire world, the function only selects the data for the countries of 
 # interest.If you want to add or delete countries you need to do it from inside the function.  It would probably 
 # be a good idea to change this main code later so that country slection is made here
-#Use function GDPprep to clean and standardize the GDP Data
-GDP<-GDPprep(GDPdata)  
 ##########################################################################################################################################
+
 ##########################################################################################################################################
-#######  COUNTRY TOTAL POPULATION SIZE DATA. Data are for all countries and years, so will need to select just the years of interest 
-#######  select just countries of in our study: ARG BOL BRA CHL COL CRI CUB ECU SLV GTM HND MEX NIC PAN PRY PER URY VEN
-##########################################################################################################################################
-##########################################################################################################################################
-#Importing the PopSize Data. #These data are in a different Folder
-setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/SocioEconomic Data/worldBank_PopSize") 
-PopSizeData<-read.csv("PopSize.csv", dec=".", header = TRUE, sep = ",", check.names=FALSE)
-#Use function PopSizeprep to clean and standardize the World Bank Population Total Size Data
+#Use function PopSizeprep to clean and standardize the World Bank Population Total Size Data. As above it selects just
+#countries of in our study: ARG BOL BRA CHL COL CRI CUB ECU SLV GTM HND MEX NIC PAN PRY PER URY VEN USA CAN
 PopSize<-PopSizeprep(PopSizeData)  
 ##########################################################################################################################################
+
 ##########################################################################################################################################
-#######  UNESCO R&D DATA. Data are for all countries and years, so will need to select just the years of interest 
-#######  select just countries of in our study: ARG BOL BRA CHL COL CRI CUB ECU SLV GTM HND MEX NIC PAN PRY PER URY VEN
-##########################################################################################################################################
-##########################################################################################################################################
-#Importing the Investment in R&D Data. 
-setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/SocioEconomic Data/R&D (% of GDP)")
-RDData<-read.csv("R&D.csv", dec=".", header = TRUE, sep = ",", check.names=FALSE)
-#Use function RDprep to clean and standardize the % GD Devoted to RD Data
+#Use function RDprep to clean and standardize the % GD Devoted to RD Data from UNESCO. As above it selects just
+#countries of in our study: ARG BOL BRA CHL COL CRI CUB ECU SLV GTM HND MEX NIC PAN PRY PER URY VEN USA CAN
 RD<-RDprep(RDData)  
 ##########################################################################################################################################
+
 ##########################################################################################################################################
-#######   WORLD BANK EDUCATION DATA. These data are for all countries x years
-#######   Need to select just the years of interest and the countries in the analyses
-##########################################################################################################################################
-##########################################################################################################################################
-setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/SocioEconomic Data/WorldBank_ED")
-WBEDdata<-read.csv("WorldBankEdData.csv", dec=".", header = TRUE, sep = ",", check.names=FALSE)
-#Use function WBEDprep to clean and standardize the WorldBank Education Data
+#Use function WBEDprep to clean and standardize the WorldBank Education Data. As above it selects just
+#countries of in our study: ARG BOL BRA CHL COL CRI CUB ECU SLV GTM HND MEX NIC PAN PRY PER URY VEN USA CAN
 WBED<-WBEDprep(WBEDdata)  
 ##########################################################################################################################################
+
 ##########################################################################################################################################
-#######   UN EDUCATION DATA. These data are for all countries x years
-#######   Need to select just the years of interest and the countries in the analyses
-##########################################################################################################################################
-##########################################################################################################################################
-#Importing the UNDP ED Data. 
-setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/SocioEconomic Data/UNDP_ED")
-UNEDdata<-read.csv("UNDP_EdIndex.csv", dec=".", header = TRUE, sep = ",", na.strings='NULL', check.names=FALSE)
-#Use function UNEDprep to clean and standardize the UN Education Data
+#Use function UNEDprep to clean and standardize the UN Education Data. As above it selects just
+#countries of in our study: ARG BOL BRA CHL COL CRI CUB ECU SLV GTM HND MEX NIC PAN PRY PER URY VEN USA CAN
 UNED<-UNEDprep(UNEDdata)  
 ##########################################################################################################################################
+
 ##########################################################################################################################################
-####  READ IN THE PUBLICATION DATA (NOT USING REFNET)
-##########################################################################################################################################
-##########################################################################################################################################
-#Read in the data of publications per year per country
-setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience") 
-PUBSdata<-read.csv("PUBCOUNT_21may2015.csv", dec=".", header = TRUE, sep = ",", na.strings='NULL', check.names=FALSE)
-#Use the function PUBSprep clean and standardize the Publication Data
+#Use the function PUBSprep clean and standardize the Publication Data. These data were not from REFNET, 
+#They were collected with searches of WOS Key words
 PUBS<-PUBSprep(PUBSdata)  
+##########################################################################################################################################
 
-
 ##########################################################################################################################################
-##########################################################################################################################################
-####  NA reminder of the datasets you have and their structire
-##########################################################################################################################################
+# THis section is to see the structure of the different datasets and can be commented out.
 ##########################################################################################################################################
 
 str(UNED)
