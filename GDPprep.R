@@ -31,5 +31,11 @@ GDPprep <- function(x) {
   #summary(GDPdata)
   str(GDPdata)
   #levels(GDPdata$Country.Name)
+  #Coonvert year to a number (it was previously a factor)  #note can't just use as.numeric
+  #the reason is here http://stackoverflow.com/questions/3418128/how-to-convert-a-factor-to-an-integer-numeric-without-a-loss-of-information
+  GDPdata$Year<-as.numeric(levels(GDPdata$Year))[GDPdata$Year] 
+  #Sort it first within a frame by rows to make it easier to read
+  GDPdata<-GDPdata[order(GDPdata$Country.Name, GDPdata$Year),]
+  #GDPdata
   
 }
