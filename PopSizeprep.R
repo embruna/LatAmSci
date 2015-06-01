@@ -25,10 +25,16 @@ names(PopSizeData)[3] <- "Indicator.Code"
 names(PopSizeData)[4] <- "Indicator.Name" 
 PopSizeData$Year<-gsub("YR", "", PopSizeData$Year) #replacing YR with year
 PopSizeData$Year<-as.factor(PopSizeData$Year) #setting back as factor
+
+
 PopSizeData<-droplevels(PopSizeData)
 #str(PopSizeData)
 #reorder the columns to bind
-PopSizeData<- PopSizeData[,c("Country.Name","Country.Code","Indicator.Name","Indicator.Code","Data.Source","Year","Value")] #head(PopSizeData)
+PopSizeData$Region<-"LatAm"
+PopSizeData$Region[PopSizeData$Country.Code == "USA"]<-"USA"
+PopSizeData$Region[PopSizeData$Country.Code == "CAN"]<-"Canada"
+
+PopSizeData<- PopSizeData[,c("Country.Name","Country.Code","Indicator.Name","Indicator.Code","Data.Source","Year","Value", "Region")] #head(PopSizeData)
 #summary(PopSizeData)
 #str(PopSizeData)
 #Coonvert year to a number (it was previously a factor)  #note can't just use as.numeric

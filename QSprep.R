@@ -3,6 +3,7 @@
 # on each of the ranking criteria. 
 
 QSprep <- function(x) {
+ 
   titles<-UNIRANK$category[1:19]
   titles<-UNIRANK$category[1:19]
   
@@ -35,5 +36,5 @@ QSprep <- function(x) {
   UNIRANK[1]<-as.character(UNIRANK$rank.2012)
   UNIRANK[1]<-as.numeric(UNIRANK$rank.2012)
   UNIRANK$Country.Territory<- NULL
-  #UNIRANK
+  #UNIRANK  
 }

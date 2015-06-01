@@ -19,27 +19,8 @@
 #setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/refnet")
 ##  Set this to wherever you unzipped the archive folders (not /src):
 
-#detach(package:refnet, unload=TRUE)
-#remove.packages("refnet")
-# library(maptools)
-# library(reshape2)
-# library(rworldmap)
-# library(RecordLinkage)
-# library(igraph)
-# library(network)
-# library(sna)
-# library(Hmisc)
-# library(refnet)
-# library(ggplot2)
 library(dplyr)
 library(tidyr)
-# library(rgdal)
-#require(refnet)
-#library(raster)
-#library(colorspace)
-# library(RColorBrewer)
-# library(xts)
-# library(zoo)
 
 rm(list=ls())
 #LOAD THE NECESSARY FUNCTIONS
@@ -53,8 +34,7 @@ source("WBEDprep.R")
 source("UNEDprep.R")
 source("PUBSprep.R")
 
-
-#Load the datasets
+#LOAD THE DATASETS
 setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/Data") #These data are in a different Folder from the code
 #Importing QS UNIVERSITY RANKINGS DATA on Latin America's top 100 Universities
 UNIRANK<-read.csv("QS.csv", dec=".", header = TRUE, sep = ",", na.strings='NULL', check.names=FALSE)
@@ -150,6 +130,30 @@ str(GDP)
 ##  Now some analyses and figures - THese will need to be revised since I know have seperate datasets instead of one giant
 ######################################
 ######################################
+
+
+
+# library(maptools)
+# library(reshape2)
+# library(rworldmap)
+# library(RecordLinkage)
+# library(igraph)
+# library(network)
+# library(sna)
+# library(Hmisc)
+# 
+# library(ggplot2)
+
+# library(rgdal)
+#require(refnet)
+#library(raster)
+#library(colorspace)
+# library(RColorBrewer)
+# library(xts)
+# library(zoo)
+
+
+
 ####################
 # visualizations of individual independent variables
 ####################

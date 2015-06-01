@@ -25,9 +25,11 @@ GDPprep <- function(x) {
   GDPdata$Year<-gsub("YR", "", GDPdata$Year) #replacing YR with year
   GDPdata$Year<-as.factor(GDPdata$Year) #setting back as factor
   GDPdata<-droplevels(GDPdata)
-  
-  #reorder the columns to bind
-  GDPdata<- GDPdata[,c("Country.Name","Country.Code","Indicator.Name","Indicator.Code","Data.Source","Year","Value")] #head(GDPdata)
+  GDPdata$Region<-"LatAm"
+  GDPdata$Region[GDPdata$Country.Code == "USA"]<-"USA"
+  GDPdata$Region[GDPdata$Country.Code == "CAN"]<-"Canada"
+    #reorder the columns to bind
+  GDPdata<- GDPdata[,c("Country.Name","Country.Code","Indicator.Name","Indicator.Code","Data.Source","Year","Value", "Region")] #head(GDPdata)
   #summary(GDPdata)
   str(GDPdata)
   #levels(GDPdata$Country.Name)
@@ -36,6 +38,7 @@ GDPprep <- function(x) {
   GDPdata$Year<-as.numeric(levels(GDPdata$Year))[GDPdata$Year] 
   #Sort it first within a frame by rows to make it easier to read
   GDPdata<-GDPdata[order(GDPdata$Country.Name, GDPdata$Year),]
+ 
   #GDPdata
   
 }

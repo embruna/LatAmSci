@@ -25,10 +25,17 @@ RDprep <- function(x) {
   names(RDData)[4] <- "Indicator.Name" 
   RDData$Year<-gsub("YR", "", RDData$Year) #replacing YR with year
   RDData$Year<-as.factor(RDData$Year) #setting back as factor
+  RDData$Region<-"LatAm"
+  RDData$Region[RDData$Country.Code == "USA"]<-"USA"
+  RDData$Region[RDData$Country.Code == "CAN"]<-"Canada"
   RDData<-droplevels(RDData)
   str(RDData)
+  
+  
+
+  
   #reoRDDataer the columns to bind
-  RDData<- RDData[,c("Country.Name","Country.Code","Indicator.Name","Indicator.Code","Data.Source","Year","Value")] #head(RDData)
+  RDData<- RDData[,c("Country.Name","Country.Code","Indicator.Name","Indicator.Code","Data.Source","Year","Value", "Region")] #head(RDData)
   #summary(RDData)
   #str(RDData)
   

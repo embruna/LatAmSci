@@ -1,6 +1,8 @@
-If you wanted to input data on publications from Endnote files using REFNET, this is what you would use.
+# If you wanted to input data on publications from Endnote files using REFNET, this is what you would use.
 
-
+#detach(package:refnet, unload=TRUE)
+#remove.packages("refnet")
+#library(refnet)
 # REFNET SECTION
 
 ####################

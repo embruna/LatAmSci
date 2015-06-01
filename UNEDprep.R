@@ -44,8 +44,14 @@ UNEDprep <- function(x) {
   UNEDdata$Indicator.Name<-as.factor("UNEDdata")
   UNEDdata$Indicator.Code<-as.factor("UN.ED.Index")
   names(UNEDdata)[1] <- "Country.Name" 
+  
+  UNEDdata$Region<-"LatAm"
+  UNEDdata$Region[UNEDdata$Country.Code == "USA"]<-"USA"
+  UNEDdata$Region[UNEDdata$Country.Code == "CAN"]<-"Canada"
+  
+  
   UNEDdata<-droplevels(UNEDdata)
-  UNEDdata<- UNEDdata[,c("Country.Name","Country.Code","Indicator.Name","Indicator.Code","Data.Source","Year","Value")] #reorder the columns to bind
+  UNEDdata<- UNEDdata[,c("Country.Name","Country.Code","Indicator.Name","Indicator.Code","Data.Source","Year","Value", "Region")] #reorder the columns to bind
   #head(UNEDdata)
   #summary(UNEDdata)
   #str(UNEDdata)

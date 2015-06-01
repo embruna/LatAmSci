@@ -23,10 +23,15 @@ WBEDprep <- function(x) {
   names(WBEDdata)[4] <- "Indicator.Name" 
   WBEDdata$Year<-gsub("YR", "", WBEDdata$Year) #replacing YR with year
   WBEDdata$Year<-as.factor(WBEDdata$Year) #setting back as factor
+  
+  WBEDdata$Region<-"LatAm"
+  WBEDdata$Region[WBEDdata$Country.Code == "USA"]<-"USA"
+  WBEDdata$Region[WBEDdata$Country.Code == "CAN"]<-"Canada"
+  
   WBEDdata<-droplevels(WBEDdata)
   
   #reorder the columns to bind
-  WBEDdata<- WBEDdata[,c("Country.Name","Country.Code","Indicator.Name","Indicator.Code","Data.Source","Year","Value")] #head(WBEDdata)
+  WBEDdata<- WBEDdata[,c("Country.Name","Country.Code","Indicator.Name","Indicator.Code","Data.Source","Year","Value", "Region")] #head(WBEDdata)
   #summary(WBEDdata)
   #str(WBEDdata)
   #Coonvert year to a number (it was previously a factor)  #note can't just use as.numeric

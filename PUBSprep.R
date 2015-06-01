@@ -3,8 +3,6 @@
 
 PUBSprep <- function(x) {
 
-  setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience") 
-  PUBSdata<-read.csv("PUBCOUNT_21may2015.csv", dec=".", header = TRUE, sep = ",", na.strings='NULL', check.names=FALSE)
   
 #Add a column with the country code
 PUBSdata$Country.Code[PUBSdata$Country.Name == "Argentina"]  <-"ARG"
