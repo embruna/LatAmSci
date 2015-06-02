@@ -29,7 +29,7 @@ RDprep <- function(x) {
   RDData$Region[RDData$Country.Code == "USA"]<-"USA"
   RDData$Region[RDData$Country.Code == "CAN"]<-"Canada"
   RDData<-droplevels(RDData)
-  str(RDData)
+  #str(RDData)
   
   
 
