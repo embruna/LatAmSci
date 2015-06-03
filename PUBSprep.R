@@ -38,8 +38,12 @@ PUBSdata$Country.Code<-as.factor(PUBSdata$Country.Code)
 #the reason is here http://stackoverflow.com/questions/3418128/how-to-convert-a-factor-to-an-integer-numeric-without-a-loss-of-information
 PUBSdata$Value<-as.numeric(PUBSdata$Value)
 PUBSdata$Year<-as.numeric(PUBSdata$Year)
+PUBSdata$Region<-"LatAm"
+PUBSdata$Region[PUBSdata$Country.Code == "USA"]<-"USA"
+PUBSdata$Region[PUBSdata$Country.Code == "CAN"]<-"Canada"
+
 #reorder the columns (this will make them match up with SESData later)
-PUBSdata<-PUBSdata[,c(1,5,6,2,7,4,3)]
+PUBSdata<-PUBSdata[,c(1,5,6,2,7,4,3,8)]
 # str(PUBSdata)
 # summary(PUBSdata)
 #Sort it first within a frame by rows to make it easier to read

@@ -31,7 +31,7 @@ GDPprep <- function(x) {
     #reorder the columns to bind
   GDPdata<- GDPdata[,c("Country.Name","Country.Code","Indicator.Name","Indicator.Code","Data.Source","Year","Value", "Region")] #head(GDPdata)
   #summary(GDPdata)
-  str(GDPdata)
+  #str(GDPdata)
   #levels(GDPdata$Country.Name)
   #Coonvert year to a number (it was previously a factor)  #note can't just use as.numeric
   #the reason is here http://stackoverflow.com/questions/3418128/how-to-convert-a-factor-to-an-integer-numeric-without-a-loss-of-information
