@@ -20,6 +20,7 @@ library(RColorBrewer)
 library(grid)
 library(gridExtra)
 library(RGraphics)
+library(rworldmap)
 
 rm(list=ls())
 #LOAD THE NECESSARY FUNCTIONS
@@ -605,6 +606,76 @@ MyFig15<-MyFig15 + theme_bw()+theme(panel.grid.major = element_blank(),
                                      panel.margin = unit(1, "lines"),
                                      strip.background = element_rect(colour="black", size=0.5, fill="white"))
 MyFig15
+#############################################################################################################################
+#############################################################################################################################
+
+
+#############################################################################################################################
+#############################################################################################################################
+# Mapping % of total productivity 1991-2014 by each country
+# Prep the data 
+MyFig16<-filter(PUBS.COUNT, Region == "LatAm" & Year >1990)  #Reduce dataset to Latin America & 1991 On
+MyFig16<-aggregate(Count ~ Country.Name+Country.Code, data = MyFig16, sum) #Total for each country over entire time period
+MyFig16$perc.total<-(MyFig16$Count/sum(MyFig16$Count))*100   #calculates each countrys percent of the total productivty 
+MyFig16$perc.total<-round(MyFig16$perc.total, 2)   #Round to 2 decimal places
+MyFig16<-arrange(MyFig16, Count)  #Arrange them from low to high - easier to see who is high and low
+
+MyFig16$Country.Name<- as.character(MyFig16$Country.Name)
+MyFig16$Country.Name[MyFig16$Country.Name == "El.Salvador"] <- "El Salvador"
+MyFig16$Country.Name[MyFig16$Country.Name == "Costa.Rica"] <- "Costa Rica"
+MyFig16$Country.Name<- as.factor(MyFig16$Country.Name)
+
+# making the maps: First map to the whole globe, then make the map just Latin America
+sPDF <- joinCountryData2Map( MyFig16, joinCode = "ISO3", nameJoinColumn = "Country.Code") 
+mapCountryData(sPDF, nameColumnToPlot="perc.total") #Maps your variable of interest into the map of the world
+# How to just plot to LATAM (with HT to http://stackoverflow.com/questions/28838866/mapping-all-of-latin-america-with-rworldmap/28863992#28863992)
+sPDFmyCountries <- sPDF[sPDF$NAME %in% MyFig16$Country.Name,] #select out your countries
+# use the bbox to define xlim & ylim
+#mapCountryData(sPDF, nameColumnToPlot="articles", xlim=bbox(sPDFmyCountries)[1,], ylim=bbox(sPDFmyCountries)[2,])
+# OR BETTER YET: If you wanted just to display the boundaries of the countries you have 
+# (i.e. if you had all of the Latin American countries in your data) you could do :
+mapCountryData(sPDFmyCountries, nameColumnToPlot="perc.total", catMethod="fixedWidth", 
+               colourPalette="heat", borderCol="black",  mapTitle = "% of Articles Published, 1991-2014") #numCats=30
+
+#catMethod: ”pretty”, ”fixedWidth”, ”diverging”,”logFixedWidth”,”quantiles”,”categorical”,
+#or a numeric vector defining breaks.
+
+#Adding labels for each country, requirespackage RASTER
+# get the coordinates for each country
+#country_coord<-data.frame(coordinates(sPDFmyCountries),stringsAsFactors=F)
+# label the countries
+#text(x=country_coord$X1,y=country_coord$X2,labels=row.names(country_coord))
+#############################################################################################################################
+#############################################################################################################################
+# Mapping total productivity 1991-2014 by each country
+MyFig17<-filter(PUBS.COUNT, Region == "LatAm" & Year >1990)  #Reduce dataset to Latin America & 1991 On
+MyFig17<-aggregate(Count ~ Country.Name+Country.Code, data = MyFig16, sum)
+MyFig17<-arrange(MyFig17, Count)  #Arrange them from low to high - easier to see who is high and low
+
+MyFig17$Country.Name<- as.character(MyFig17$Country.Name)
+MyFig17$Country.Name[MyFig17$Country.Name == "El.Salvador"] <- "El Salvador"
+MyFig17$Country.Name[MyFig17$Country.Name == "Costa.Rica"] <- "Costa Rica"
+MyFig17$Country.Name<- as.factor(MyFig17$Country.Name)
+
+# making the maps: First map to the whole globe, then make the map just Latin America
+sPDF <- joinCountryData2Map( MyFig17, joinCode = "ISO3", nameJoinColumn = "Country.Code") 
+mapCountryData(sPDF, nameColumnToPlot="Count") #Maps your variable of interest into the map of the world
+# How to just plot to LATAM (with HT to http://stackoverflow.com/questions/28838866/mapping-all-of-latin-america-with-rworldmap/28863992#28863992)
+sPDFmyCountries <- sPDF[sPDF$NAME %in% MyFig17$Country.Name,] #select out your countries
+# use the bbox to define xlim & ylim
+#mapCountryData(sPDF, nameColumnToPlot="articles", xlim=bbox(sPDFmyCountries)[1,], ylim=bbox(sPDFmyCountries)[2,])
+# OR BETTER YET: If you wanted just to display the boundaries of the countries you have 
+# (i.e. if you had all of the Latin American countries in your data) you could do :
+mapCountryData(sPDFmyCountries, nameColumnToPlot="Count", catMethod=breaks, 
+               colourPalette="heat", borderCol="black",  mapTitle = "Articles Published, 1991-2014") #numCats=30
+
+#catMethod: ”pretty”, ”fixedWidth”, ”diverging”,”logFixedWidth”,”quantiles”,”categorical”,
+#or a numeric vector defining breaks.
+breaks<-c(0,40,100,200,300,400,500,600,700,800)
+breaks<-seq(0, 3500, by = 100)
+breaks<-c(seq(0, 1500, by = 100),3500)
+
+
 ###################################################
 ###################################################
 ##  BUILDING MULTI-PANEL FIGURES
@@ -659,7 +730,7 @@ MyFig8a + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = 
 
 # library(maptools)
 # library(reshape2)
-# library(rworldmap)
+# 
 # library(RecordLinkage)
 # library(igraph)
 # library(network)
@@ -686,26 +757,12 @@ library(ggplot2)
 boxplot(Value~Country.Code,data=SESdata[SESdata$Indicator.Code=="R&D",], main="RD", xlab="Ncountry", ylab="median val")
 
 #Box Plot Education Indices
-
 condition <- c("WBED", "UN_ED")
 ED.DATA<-dplyr::filter(SESdata, Data.Source %in% condition)
 boxplot(Value~Country.Code,data=ED.DATA[ED.DATA$Data.Source=="UN_ED",], main="UNED", xlab="Ncountry", ylab="median val")
 boxplot(Value~Country.Code,data=ED.DATA[ED.DATA$Data.Source=="WBED",], main="UNED", xlab="Ncountry", ylab="median val")
 
 
-#line chart of popsize per year per country
-
-POP<-SESdata[SESdata$Indicator.Code=="PopSize" & SESdata$Year>=1991 ,]
-POP[complete.cases(POP),]
-POPFig<-qplot(Year, Value, data = POP, color = Country.Name, geom = "line",
-               colour = Country.Name,
-               main = "Population Size")
-#This changes the color scheme of the lines
-#MyFig4a<-MyFig4a + scale_color_brewer(palette = "Paired") 
-
-#these removes the gray background, dots, and gridlines from the plot
-POPFig + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
-                             panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
 
 #scatter plot of GDP vs PopSize
 
@@ -719,30 +776,17 @@ POPvGDP+ geom_point()
 qplot(PopSize, GDP, data = POP2) + facet_wrap(~ Country.Name, scales = "free")
 
 
-
 ####NEED TO REDO THE FIGURES NOW THAT DATA ARE ALL INA  SINGLE FILE!!!!
 
 #some figures using ggplot2
 
-#FIGURE 1 TOTAL PRODUCTIVITY BY YEAR
-Fig1<-PUBS.COUNT[ALLDATA$Indicator.Name=="Publications",]
-Fig1[complete.cases(Fig1),]
-Fig1<-as.data.frame(tapply(Fig1$Value, Fig1$Year, sum))
-names(Fig1)[1] <- "Publications" #need to rename the column after tapply
-Fig1$year<-c(1991:2014)
-MyFig1<-qplot(year,Publications, data = Fig1, geom="line", main = "Articles with Latin American Authors/Co-Authors, 1991-2014")
-MyFig1 + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
-                             panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
 
-
-
+str(Fig2)
 #Figure 2: 
-Fig2<-ALLDATA[ALLDATA$Indicator.Name=="Publications" ,]
-Fig2[complete.cases(Fig2),]
-Fig2<-aggregate(Value ~ Country.Name+Country.Code, data = Fig2, sum)
-perc.total<-(Fig2$Value/sum(Fig2$Value))*100
-Fig2<-cbind(Fig2,perc.total)
-Fig2<-arrange(Fig2, Value)
+Fig2<-filter(PUBS.COUNT, Region == "LatAm" & Year >1990)
+Fig2<-aggregate(Count ~ Country.Name+Country.Code, data = Fig2, sum)
+Fig2$perc.total<-(Fig2$Count/sum(Fig2$Count))*100
+Fig2<-arrange(Fig2, Count)
 
 #sPDF <- getMap()  
 #mapCountryData(sPDF, mapRegion='latin america' )
@@ -761,43 +805,16 @@ sPDFmyCountries <- sPDF[sPDF$NAME %in% Fig2$Country.Name,]
 #(i.e. if you had all of the Latin American countries in your data) you could do :
 mapCountryData(sPDFmyCountries, nameColumnToPlot="perc.total", catMethod="categorical", colourPalette="heat", borderCol="black",  mapTitle = "% of Articles Published, 1991-2014") #numCats=30
 
+
+
+
+
+
 #Adding labels for each country, requirespackage RASTER
 # get the coordinates for each country
 #country_coord<-data.frame(coordinates(sPDFmyCountries),stringsAsFactors=F)
 # label the countries
 #text(x=country_coord$X1,y=country_coord$X2,labels=row.names(country_coord))
-
-
-
-
-
-#Fig4a is line chart of productivity per year per country
-Fig4a<-ALLDATA[ALLDATA$Indicator.Name=="Publications",]
-Fig4a[complete.cases(Fig4a),]
-MyFig4a<-qplot(Year, Value, data = Fig4a, color = Country.Name, geom = "line",
-      colour = Country.Name,
-      main = "Articles Produced Annually, 1991-2014")
-#This changes the color scheme of the lines
-#MyFig4a<-MyFig4a + scale_color_brewer(palette = "Paired") 
-
-#these removes the gray background, dots, and gridlines from the plot
-MyFig4a + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
-                                 panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
