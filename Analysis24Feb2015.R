@@ -162,7 +162,7 @@ DATA$PubsPerGDP<-DATA$Pubs/DATA$GDP #Pubs per $ GDP   #####NEED TO MAKE GDP in Y
 DATA$PubsPerMilGDP<-DATA$Pubs/DATA$GDPxMil #Pubs per million $ GDP   #####NEED TO MAKE GDP in YR t-1
 DATA$PubsPerMilGDP<-round(DATA$PubsPerMilGDP,8) #Round to 8 digits
 
-DATA$Efficiency<-DATA$PubsPerCapita/DATA$GDPPerCapita
+DATA$Efficiency<-(DATA$PubsPerCapita/DATA$GDPPerCapita)
 DATA <- DATA[order(DATA$Efficiency),] 
 #############################################################################################################################
 ##  PERCENT CHANGE IN PUBLICATIONS PRODCUED By COUNTRY OVER AVG PER YEAR 1981-1990
@@ -395,13 +395,21 @@ MyFig13
 #############################################################################################################################
 
 MyFig17<-filter(DATA, Region == "LatAm" & Year >1990)  #Reduce dataset to Latin America & 1991 On
-MyFig17<-aggregate(Pubs ~ Country.Name+Country.Code, data = MyFig16, sum)
+MyFig17<-MyFig17 %>%
+  group_by(Country.Code, Country.Name) %>%
+  summarise(Pubs = sum(Pubs))
 MyFig17<-arrange(MyFig17, Pubs)  #Arrange them from low to high - easier to see who is high and low
 
 MyFig17$Country.Name<- as.character(MyFig17$Country.Name)
 MyFig17$Country.Name[MyFig17$Country.Name == "El.Salvador"] <- "El Salvador"
 MyFig17$Country.Name[MyFig17$Country.Name == "Costa.Rica"] <- "Costa Rica"
 MyFig17$Country.Name<- as.factor(MyFig17$Country.Name)
+
+MyFig17<-MyFig17 %>%
+  group_by(Country.Code, Country.Name) %>%
+  summarise(Pubs = sum(Pubs))
+
+
 
 # making the maps: First map to the whole globe, then make the map just Latin America
 sPDF <- joinCountryData2Map( MyFig17, joinCode = "ISO3", nameJoinColumn = "Country.Code") 
@@ -527,7 +535,7 @@ text(df10$LON+df10$latOffset, df10$LAT+df10$lonOffset, labels=df10$Country.Code)
 #############################################################################################################################
 
 #############################################################################################################################
-## Total Plublications
+## Total Plublications by Year 
 #############################################################################################################################
 
 Fig15<-filter(DATA, Region == "LatAm" & Year >1990)
@@ -593,6 +601,66 @@ MyFig19
 #############################################################################################################################
 #############################################################################################################################
 
+
+#############################################################################################################################
+#Fig20 productivity per year per region
+#############################################################################################################################
+Fig20<-DATA  #create a dataframe to make this figure
+Fig20<-Fig20 %>% 
+  filter(Year>=2008 & Year< 2014) %>%
+  select(Efficiency, Country.Name, Country.Code, Year)
+
+# Fig20<-aggregate(Efficiency ~ Country.Name+Country.Code, data = Fig20, sum)
+
+EFFMEAN<-Fig20 %>%
+  group_by(Country.Code) %>%
+  summarise(Mean.Eff = mean(Efficiency)) 
+ 
+EFFSD<-Fig20 %>%
+  group_by(Country.Name) %>%
+  summarise(SD.Eff = sd(Efficiency)) 
+
+Fig20<-cbind(EFFMEAN,EFFSD)
+
+Fig20$Country.Name = factor(Fig20$Country.Name,levels(Fig20$Country.Name)[order(Fig20$Mean.Eff)])
+
+Fig20$Country.Name= factor(Fig20$Country.Name, levels=Fig20$Country.Name[order(Fig20$Mean.Eff)], ordered=TRUE)
+
+MyFig20<-qplot(Country.Name, Mean.Eff, data=Fig20, xlab="Country", ylab="Efficiency (Ratio of GDP per Capita: Publications Per Capita") 
+MyFig20<-MyFig20+geom_point() +geom_text(aes(label=Country.Code),hjust=0, vjust=-1, angle=45)
+# The following lines are options for changing the colors of the lines
+#MyFig20<-MyFig20 + scale_color_brewer(palette = "Paired")   #Changes the line color tothe RcolorBrewer palette "Paired"
+# MyFig20<-MyFig20 + scale_colour_manual(values=c("gray15", "darkgreen", "blue3"))  #I chose my own colors for the lines
+# MyFig20<-MyFig20 + geom_line(aes(group=factor(Region)),size=1)  #Changes the thickness of the lines
+# The following two-part line 1) sets the Y axix and 2) sets the frequency of the tick marks
+MyFig20<-MyFig20 + coord_cartesian(ylim = c(-0.0000000001, 0.00000000225)) + scale_y_continuous(breaks=seq(0, 0.00000000225, 0.0000000005)) 
+# I wanted to change one of the labels on X axis. to do so need scale_x_discrete. Left in Scale_X_continuous to show how would be for numerical axes
+# MyFig20<-MyFig20 + scale_y_continuous(breaks = seq(0, 3500, 500), limits = c(-20, 3500))
+# MyFig20<-MyFig20 + coord_cartesian(xlim = c(1988, 2015)) + scale_x_discrete(labels=c("Avg. per yr\n1981-1990" ," ", " ", " ", "1994"," ", " ", " ", "1998"," ", " ", " ", "2002"," ", " ", " ", "2006"," ", " ", " ", "2010"," ", " ", " ", "2014"))
+# # The following selects the theme and manipulates elements of the plot
+# I wanted to remove the gray background, dots, and gridlines from the plot
+MyFig20<-MyFig20 + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+                                    panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"), #sets colors of axes
+                                    axis.text.x = element_blank(),
+                                    plot.title = element_text(hjust=0.05, vjust=-1.8, face="bold", size=22),        #Sets title size, style, location
+                                    axis.title.x=element_text(colour="black", size = 0, vjust=-2),            #sets x axis title size, style, distance from axis #add , face = "bold" if you want bold
+                                    axis.title.y=element_text(colour="black", size = 18, vjust=2),            #sets y axis title size, style, distance from axis #add , face = "bold" if you want bold
+                                    axis.text=element_text(colour="black", size = 16),                              #sets size and style of labels on axes
+                                    plot.margin = unit(c(1,3,2,1), "cm"),                                          #Changes the margins around the plot. This will help with spacing in multi plt panels
+                                    legend.position = "none")                                                       #Removes the Legend
+
+MyFig20
+# #LEGEND
+# #If you want a legend in the figure instead of labeled lines, comment out three label lines above and 
+# #add these lines inside theme(---)
+# legend.title=element_blank(), #Deletes the title of the legend
+# legend.text=element_text(colour="black", size = 16, face = "bold"), #Increases the size of the names on the legend
+# legend.position=c(.8, .5),  #Position of the legend on the plot
+# legend.background = element_rect(fill=NULL, size=0.5, colour="black", linetype="solid"), #Puts a box around the legend and removes grey background
+# legend.key = element_blank() 
+
+#############################################################################################################################
+#############################################################################################################################
 
 ###################################################
 ###################################################
