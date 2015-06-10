@@ -643,6 +643,7 @@ MyFig20<-MyFig20 + theme_bw() + theme(panel.border = element_blank(), panel.grid
                                     panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"), #sets colors of axes
                                     axis.text.x = element_blank(),
                                     plot.title = element_text(hjust=0.05, vjust=-1.8, face="bold", size=22),        #Sets title size, style, location
+                        
                                     axis.title.x=element_text(colour="black", size = 0, vjust=-2),            #sets x axis title size, style, distance from axis #add , face = "bold" if you want bold
                                     axis.title.y=element_text(colour="black", size = 18, vjust=2),            #sets y axis title size, style, distance from axis #add , face = "bold" if you want bold
                                     axis.text=element_text(colour="black", size = 16),                              #sets size and style of labels on axes
