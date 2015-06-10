@@ -1,3 +1,4 @@
+
 #####TO DO LIST: DATA ENTRY AND MANIPULATION
   #Figure out if need HDI. If so, need to reinsert it somewhere
 #####Analyses and Figures
@@ -110,7 +111,6 @@ UNED<-UNEDprep(UNEDdata)
 PUBS<-PUBSprep(PUBSdata)  
 #############################################################################################################################
 
-
 #############################################################################################################################
 # Structure of the different datasets 
 #############################################################################################################################
@@ -121,142 +121,116 @@ PUBS<-PUBSprep(PUBSdata)
 # str(RD)
 # str(PUBS)
 
-
-
 ###################################################
 ###################################################
-##  DATA MANIPULATION FOR ANALYSES AND FIGURES
+##  DATA MANIPULATION FOR ANALYSES
 ###################################################
 ###################################################
-
 
 #############################################################################################################################
-##  PUBLICATIONS PER REGION/COUNTRY PER YEAR 
-PUBS.COUNT.LONG<-PUBS #Publications per year in LONG FORMAT
-PUBS.COUNT.LONG$Indicator.Name<-NULL	#Delete unecessary column
-PUBS.COUNT.LONG$Indicator.Code<-NULL	#Delete unecessary column
-PUBS.COUNT.LONG$Data.Source<-NULL     #Delete unecessary column
-PUBS.COUNT.WIDE<-spread(PUBS.COUNT.LONG, Year, Value) #Convert to WIDE FORMAT
-# #If you wanted to change the olumn names to avoid having them be numbers use the following two lines
-# colnames(PUBS.COUNT.WIDE)[5:28] <- paste("YR", colnames(PUBS.COUNT.WIDE)[5:28], sep = ".") #Change the column names to make sure they don't start with a number
-# colnames(PUBS.COUNT.WIDE)[4]<- "Avg1980s"
-
+##  Select and add to dataframe DATA: 1) Pubs 2) PopSize 3) GDP 4) GDP/1million 5) Pubs Per Capita 
+##  6) Pubs per Million Residents 7) GDP per capita 8) Pubs per million $ GDP  
 #############################################################################################################################
-##  PERCENT CHANGE IN PUBLICATIONS PRODCUED By Region & Country
-#############################################################################################################################
-#FOR NATIONAL PATTERNS OF % CHANGE: Create a dataframe to store the data on proportional change from year to year. 
-#It is created based on PUBS.COUNT.WIDE and includes Country.Name, Country.Code, Region
-PUBS.PROP.NAT<-select(PUBS.COUNT.WIDE, contains("Country"))
-PUBS.PROP.NAT$Region<-PUBS.COUNT.WIDE$Region
+ALLDATA_LONG<-rbind(UNED, WBED, GDP, PopSize,RD, PUBS)
+ALLDATA_LONG<-filter(ALLDATA_LONG, Year>=1990)
+# ALLDATA_WIDE<-spread(ALLDATA_LONG, Year, Value)  #Should you want to put all the data in WIDE format
+# colnames(ALLDATA_WIDE)[7:dim(ALLDATA_WIDE)[2]] <- paste("YR", colnames(ALLDATA_WIDE)[7:dim(ALLDATA_WIDE)[2]], sep = ".")  #Rename the columns so that their names don't start with a number
 
-#This loop will calculate the proportional change in pub number compared to avg for 1981-1990 (the column "1990")
-#Note that it will give NaN for all those for which there were no publicatons in that decade
-for (n in 5:28)
+DATA<-ALLDATA_LONG %>% 
+  filter(Indicator.Code=="PUBS.TOTL") %>%
+  select(Region, Country.Name, Country.Code, Indicator.Code, Year, Value)
+colnames(DATA)[6] <- "Pubs"   #Note Pubs in "1990" is still equal to Total 1981-1990
+DATA$Pubs[DATA$Year == 1990]  <- DATA$Pubs[DATA$Year == 1990] / 10  #Conver value for 1990s from total to avgs per year
+DATA<-cbind(DATA, ALLDATA_LONG %>% 
+              filter(Indicator.Code=="PopSize") %>%
+              select(Value))  
+colnames(DATA)[7] <- "PopSize"   
+
+DATA<-cbind(DATA, (ALLDATA_LONG %>%
+  filter(Indicator.Code=="GDP") %>%
+  select(Value)))
+colnames(DATA)[8] <- "GDP"   
+
+DATA$GDPxMil<-DATA$GDP/1000000  #GDP/1million
+
+DATA$PubsPerCapita<-DATA$Pubs/DATA$PopSize   #Pubs Per Capita 
+DATA$PubsPerMilResidents<-DATA$Pubs/(DATA$PopSize/1000000) #Pubs per Million Residents
+DATA$PubsPerMilResidents<-round(DATA$PubsPerMilResidents,4) #Round to 4 digits
+
+DATA$GDPPerCapita<-DATA$GDP/DATA$PopSize #GDP per capita 
+DATA$PubsPerGDP<-DATA$Pubs/DATA$GDP #Pubs per $ GDP   #####NEED TO MAKE GDP in YR t-1
+DATA$PubsPerMilGDP<-DATA$Pubs/DATA$GDPxMil #Pubs per million $ GDP   #####NEED TO MAKE GDP in YR t-1
+DATA$PubsPerMilGDP<-round(DATA$PubsPerMilGDP,8) #Round to 8 digits
+
+DATA$Efficiency<-DATA$PubsPerCapita/DATA$GDPPerCapita
+DATA <- DATA[order(DATA$Efficiency),] 
+#############################################################################################################################
+##  PERCENT CHANGE IN PUBLICATIONS PRODCUED By COUNTRY OVER AVG PER YEAR 1981-1990
+#############################################################################################################################
+# Import Data, reduce to 1990-2014, calclulate the avg per year 1981-1990
+
+PUBS.PROP.NAT<-ALLDATA_LONG %>%
+  filter(Year>=1990) %>%
+  subset(Indicator.Code=="PUBS.TOTL")
+
+colnames(PUBS.PROP.NAT)[7]<-c("Pubs")  #rename column
+PUBS.PROP.NAT$Pubs[PUBS.PROP.NAT$Year == 1990]  <- PUBS.PROP.NAT$Pubs[PUBS.PROP.NAT$Year == 1990] / 10  #Conver value for 1990s from total to avgs per year
+
+# Select what youneed and spread to do the %Change from 1980s avg to year X
+PUBS.PROP.NAT<-PUBS.PROP.NAT %>%
+select(Country.Name, Pubs, Year) %>%
+  spread(Year, Pubs)
+
+#This loop will calculate the proportional change in pub number compared to avg for 1981-1990 (the column "1990)
+#It adds these columns at end of dataframe and renames them during the loop
+# add 1 to all to correct for zero values in some years, but note that this inflate the numbers for some countries
+# If you don't want this just change the 1 to a zero. Note that this will give NaN for all those for which there were no publicatons in that decade
+
+# colnames(PUBS.PROP.NAT)[2:dim(PUBS.PROP.NAT)[2]] <- paste("YR", colnames(PUBS.PROP.NAT)[2:dim(PUBS.PROP.NAT)[2]], sep = ".")  #Rename the columns so that their names don't start with a number
+# colnames(PUBS.PROP.NAT)[2]<-c("Avg1981.1990")
+endloop<-dim(PUBS.PROP.NAT)[2] #measures number of years so that you can cahnge length of time analyzed without having to recalibrate numbers of loop.
+for (n in 3:endloop)
 {
-  PUBS.PROP.NAT[n-1]<-(((PUBS.COUNT.WIDE[n])-(PUBS.COUNT.WIDE[4]))/(PUBS.COUNT.WIDE[4]))*100
+  PercChange<-((((PUBS.PROP.NAT[n]+1)-(PUBS.PROP.NAT$"1990"+1))/(PUBS.PROP.NAT$"1990"+1))*100) #Calclulate the % Change
+  PercChange<-round(PercChange,2) #Round it to 2 digits
+  PUBS.PROP.NAT<-cbind(PUBS.PROP.NAT, PercChange) #Add it to the dataframe
+  #colnames(PUBS.PROP.NAT)[dim(PUBS.PROP.NAT)[2]] <- paste("Avg", colnames(PUBS.PROP.NAT)[n], sep=".") #Rename the new column added with % change over 1981-1990 avg.
 }
 
-# 
-# #This loop will calculate the proportional change in pub number compared to avg for 1981-1990
-# #addedd 0.001 to correct for zero values in some years, but note that this hyperinflates the numbers for some countries
-# for (n in 5:28)
-# {
-#   PUBS.PROP.NAT[n-1]<-(((PUBS.COUNT.WIDE[n]+0.1)-(PUBS.COUNT.WIDE[4]+0.1))/(PUBS.COUNT.WIDE[4]+0.1))*100
-# }
+#############################################################################################################################
+##  PERCENT CHANGE IN PUBLICATIONS PRODCUED By REGION
+#############################################################################################################################
+PUBS.PROP.REG<-ALLDATA_LONG %>%
+  filter(Year>=1990) %>%
+  subset(Indicator.Code=="PUBS.TOTL")
 
+colnames(PUBS.PROP.REG)[7]<-c("Pubs")  #rename column
+#Calclulate the total per year per region
+PUBS.PROP.REG<-PUBS.PROP.REG %>%
+  select(Region, Pubs, Year) %>%
+group_by(Region, Year) %>%
+summarise(Pubs = sum(Pubs))
+#Convert value for 1990s from total to avgs per year
+PUBS.PROP.REG$Pubs[PUBS.PROP.REG$Year == 1990]  <- PUBS.PROP.REG$Pubs[PUBS.PROP.REG$Year == 1990] / 10 
+PUBS.PROP.REG<-spread(PUBS.PROP.REG,Year, Pubs)
 
-#Create a dataframe to store the data on proportional change from year to year. THIS IS FOR REGIONAL PATTERNS
-#It is created based on PUBS.COUNT and includes Country.Name, Country.Code, Region
-PUBS.PROP.REG<-PUBS
-PUBS.PROP.REG<-aggregate(Value ~ Region+Year, data = PUBS.PROP.REG, sum)
-PUBS.PROP.REG<-spread(PUBS.PROP.REG, Year, Value)
-# colnames(PUBS.PROP.REG)[3:26] <- paste("YR", colnames(PUBS.PROP.REG)[3:26], sep = ".") #Change the column names to make sure they don't start with a number
-# colnames(PUBS.PROP.REG)[2]<- "Avg1980s"
-PUBS.PROP.REG2<-select(PUBS.PROP.REG, contains("Region"))
+#This loop will calculate the proportional change in pub number compared to avg for 1981-1990 (the column "1990)
+#It adds these columns at end of dataframe and renames them during the loop
+# add 1 to all to correct for zero values in some years, but note that this inflate the numbers for some countries
+# If you don't want this just change the 1 to a zero. Note that this will give NaN for all those for which there were no publicatons in that decade
 
-#This loop will calculate the proportional diff in publications between a year and the average number of ppaers per year 1981-1990.
-#It does so using the PUBS.PROP.REG, then append it as a column in PUBS.PROP.REG2
-#The 
-for (n in 3:26)
+# colnames(PUBS.PROP.REG)[2:dim(PUBS.PROP.REG)[2]] <- paste("YR", colnames(PUBS.PROP.REG)[2:dim(PUBS.PROP.REG)[2]], sep = ".")  #Rename the columns so that their names don't start with a number
+# colnames(PUBS.PROP.REG)[2]<-c("Avg1981.1990")
+endloop<-dim(PUBS.PROP.REG)[2] #measures number of years so that you can cahnge length of time analyzed without having to recalibrate numbers of loop.
+for (n in 3:endloop)
 {
-  PUBS.PROP.REG2[n-1]<-(((PUBS.PROP.REG[n])-(PUBS.PROP.REG[2]))/(PUBS.PROP.REG[2]))*100
+  PercChange<-((((PUBS.PROP.REG[n]+1)-(PUBS.PROP.REG$"1990"))/(PUBS.PROP.REG$"1990"+1))*100) #Calc % Change
+  PercChange<-round(PercChange,2) #Round it to 2 digits
+  PUBS.PROP.REG<-cbind(PUBS.PROP.REG,PercChange) #Add it to the dataframe
+  #colnames(PUBS.PROP.REG)[dim(PUBS.PROP.REG)[2]] <- paste("Avg", colnames(PUBS.PROP.REG)[n], sep=".") #Rename the new column added with % change over 1981-1990 avg.
 }
 
 
-#Take the dataframes from wide to long
-PUBS.COUNT<-gather(PUBS.COUNT.WIDE, "Year", "Count", 4:28)
-PUBS.PROP.NAT<-gather(PUBS.PROP.NAT, "Year", "Count", 4:27)
-PUBS.PROP.REG<-gather(PUBS.PROP.REG2, "Year", "Count", 2:25)
-
-#Now Sort them by country and year
-PUBS.COUNT <- arrange(PUBS.COUNT,Country.Name, Year)
-PUBS.PROP.NAT <- arrange(PUBS.PROP.NAT,Country.Name, Year)
-PUBS.PROP.REG<-arrange(PUBS.PROP.REG,Region, Year)
-
-#Chnage name of column from count to percent change
-colnames(PUBS.PROP.NAT)[5]<- "Percent.Change"
-colnames(PUBS.PROP.REG)[3]<- "Percent.Change"
-
-#Need to convert year from factor to numeric
-PUBS.PROP.NAT$Year<-as.numeric(levels(PUBS.PROP.NAT$Year))[PUBS.PROP.NAT$Year] 
-PUBS.COUNT$Year<-as.numeric(levels(PUBS.COUNT$Year))[PUBS.COUNT$Year] 
-PUBS.PROP.REG$Year<-as.numeric(levels(PUBS.PROP.REG$Year))[PUBS.PROP.REG$Year] 
-
-# str(PUBS.PROP.NAT)
-# str(PUBS.PROP.REG)
-# str(PUBS.COUNT)
-#Some rounding to clean up
-PUBS.PROP.REG[3] <-round(PUBS.PROP.REG[3],2)
-PUBS.PROP.NAT[5] <-round(PUBS.PROP.NAT[5],2)
-
-
-#############################################################################################################################
-##  calclulate PUBS PER POP SIZE
-#############################################################################################################################
-
-PUBS<-filter(PUBS, Year >= 1990)
-PopSize1<-filter(PopSize, Year >= 1990)
-
-PubsPerCapita<-select(PUBS, contains("Country"))
-PubsPerCapita$Region<-PUBS$Region
-PubsPerCapita$PopSize1<-PUBS$Value
-PubsPerCapita$Year<-PUBS$Year
-PubsPerCapita$PubsPerCapita<-PUBS$Value/PopSize1$Value
-PubsPerCapita$PubsPer100K<-PUBS$Value/(PopSize1$Value/100000)
-
-
-#############################################################################################################################
-##  Ncalclulate PUBS PER GDP Prior YEAR AND PUBS PER (GDP PER PERSON PRIOR YEAR)
-#############################################################################################################################
-
-PUBS1<-filter(PUBS, Year >= 1991)
-PUBS1$Indicator.Name<-NULL  
-PUBS1$Indicator.Code<-NULL  
-PUBS1$Data.Source<-NULL
-PUBS1$Indicator.Name<-NULL
-names(PUBS1)[4]<-"Publications"
-names(PUBS1)[3]<-"Year.Pubs"
-
-GDP1<-filter(GDP, Year >= 1990)
-GDP1<-filter(GDP1, Year < 2014)
-GDP1$Indicator.Name<-NULL  
-GDP1$Indicator.Code<-NULL  
-GDP1$Data.Source<-NULL
-names(GDP1)[4]<-"GDP"
-GDP1$Country.Name<-NULL
-GDP1$Country.Code<-NULL
-GDP1$Region<-NULL
-names(GDP1)[1]<-"Year.GDP"
-
-PubsPerGDP<-cbind(PUBS1,GDP1)
-PubsPerGDP$PubsPerGDP<-PubsPerGDP$Publications/PubsPerGDP$GDP
-PubsPerGDP$PubsPerMilofGDP<-PubsPerGDP$Publications/(PubsPerGDP$GDP/1000000)
-
-PopSize2<-filter(PopSize, Year >= 1990)
-PopSize2<-filter(PopSize2, Year < 2014)
-PubsPerGDP$PopSize<-PopSize2$Value
-PubsPerGDP$GDPpercapita<-PubsPerGDP$GDP/PubsPerGDP$PopSize
-PubsPerGDP$PubsPerGDPpercapita<-PubsPerGDP$Publications/PubsPerGDP$GDPpercapita
 
 ###################################################
 ###################################################
@@ -264,33 +238,16 @@ PubsPerGDP$PubsPerGDPpercapita<-PubsPerGDP$Publications/PubsPerGDP$GDPpercapita
 ###################################################
 ###################################################
 
-
-
-#############################################################################################################################
-#TOTAL PRODUCTIVITY (ALL REGIONS TOGETHER)
-#############################################################################################################################
-# FigALL<-PUBS.COUNT
-# FigALL<-as.data.frame(tapply(FigALL$Count, FigALL$Year, sum))
-# names(FigALL)[1] <- "Publications" #need to rename the column after tapply
-# FigALL$Year<-c(1990:2014)
-# MyFigALL<-qplot(Year,Publications, data = FigALL, geom="line", main = "Total Articles, 1991-2014")
-# MyFigALL + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
-#                             panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
-#############################################################################################################################
-#############################################################################################################################
-
-
-
 #############################################################################################################################
 #Fig1 productivity per year per region
 #############################################################################################################################
-Fig1<-PUBS.COUNT  #create a dataframe to make this figure
+Fig1<-DATA  #create a dataframe to make this figure
 Fig1[Fig1=="LatAm"]<-"Latin America"   #change LatAm to Latin America so figure legends look nicer
-Fig1<-aggregate(Count ~ Region+Year, data = Fig1, sum)  #sum the productivity of countries in each region in each year
+Fig1<-aggregate(Pubs ~ Region+Year, data = Fig1, sum)  #sum the productivity of countries in each region in each year
 
 # Use ggplot to make the figures.  this one is a more basic qplot. The following line greates a line plot of publication 
 # count of publications by year by region. Regions differentiatiated by color
-MyFig1<-qplot(Year, Count, data = Fig1, color = Region, geom = "line", ylab="Articles")
+MyFig1<-qplot(Year, Pubs, data = Fig1, color = Region, geom = "line", ylab="Articles")
 MyFig1<-MyFig1 +ggtitle("A")       #Makes the Main title "A" because it will be figure A in a multi-panel plot
 # The following lines are options for changing the colors of the lines
 #MyFig1<-MyFig1 + scale_color_brewer(palette = "Paired")   #Changes the line color tothe RcolorBrewer palette "Paired"
@@ -300,7 +257,7 @@ MyFig1<-MyFig1 + geom_line(aes(group=factor(Region)),size=1)  #Changes the thick
 # MyFig1<-MyFig1 + coord_cartesian(ylim = c(-20, 3500)) + scale_y_continuous(breaks=seq(0, 3500, 250)) 
 # I wanted to change one of the labels on X axis. to do so need scale_x_discrete. Left in Scale_X_continuous to show how would be for numerical axes
 MyFig1<-MyFig1 + scale_y_continuous(breaks = seq(0, 3500, 500), limits = c(-20, 3500))
-MyFig1<-MyFig1 + coord_cartesian(xlim = c(1989, 2015)) + scale_x_discrete(labels=c("'80s (avg.)"," ", " ", " ", "1994"," ", " ", " ", "1998"," ", " ", " ", "2002"," ", " ", " ", "2006"," ", " ", " ", "2010"," ", " ", " ", "2014"))
+MyFig1<-MyFig1 + coord_cartesian(xlim = c(1988, 2015)) + scale_x_discrete(labels=c("Avg. per yr\n1981-1990" ," ", " ", " ", "1994"," ", " ", " ", "1998"," ", " ", " ", "2002"," ", " ", " ", "2006"," ", " ", " ", "2010"," ", " ", " ", "2014"))
 # I wanted labels om the individual lines, so I used the following to define the label and position. 
 # For a standard legend comment out the following three lines and add the ones below labeled "LEGEND" as instructed
 # Fig1[Fig1$Year=="2013" controls on which data point to put the label, hjust/vjust adjust location relative to data point labeled.
@@ -316,7 +273,7 @@ MyFig1<-MyFig1 + theme_bw() + theme(panel.border = element_blank(), panel.grid.m
                              axis.title.x=element_text(colour="black", size = 18, vjust=-2),            #sets x axis title size, style, distance from axis #add , face = "bold" if you want bold
                              axis.title.y=element_text(colour="black", size = 18, vjust=2),            #sets y axis title size, style, distance from axis #add , face = "bold" if you want bold
                              axis.text=element_text(colour="black", size = 16),                              #sets size and style of labels on axes
-                             plot.margin = unit(c(1,3,3,1), "cm"),                                          #Changes the margins around the plot. This will help with spacing in multi plt panels
+                             plot.margin = unit(c(1,3,2,1), "cm"),                                          #Changes the margins around the plot. This will help with spacing in multi plt panels
                              legend.position = "none")                                                       #Removes the Legend
 
 MyFig1
@@ -334,10 +291,379 @@ MyFig1
 
 
 #############################################################################################################################
+#Fig. 5: PROP. CHANGE in PRODUCTIVITY RELATIVE TO AVG PER YEAR IN 80s (BY REGION) 
+#############################################################################################################################
+# For Details on figure construction see Fig 1 Notatation
+Fig5<-PUBS.PROP.REG
+Fig5[Fig5=="LatAm"]<-"Latin America"
+#NEED TO DELETE THE N PER YEAR AND CONVERT TO LONG TO MAKE THIS FIG
+Fig5[2:26]<-list(NULL)
+Fig5<-gather(Fig5, "Year", "Percent.Change", 2:dim(Fig5)[2])
+#Coonvert year to a number (it was previously a factor)  #note can't just use as.numeric
+#the reason is here http://stackoverflow.com/questions/3418128/how-to-convert-a-factor-to-an-integer-numeric-without-a-loss-of-information
+Fig5$Year<-as.numeric(levels(Fig5$Year))[Fig5$Year] 
+
+MyFig5<-qplot(Year, Percent.Change, data = Fig5, color = Region, geom = "line", ylab="Percent increase in productivity\n over average per yr 1981-1990") + ggtitle("B")
+MyFig5<-MyFig5 + scale_colour_manual(values=c("gray15", "darkgreen", "blue3")) #Changes the line color
+MyFig5<-MyFig5 + geom_line(aes(group=factor(Region)),size=1)  #CHnages the Line width
+#MyFig5<-MyFig5 + coord_cartesian(ylim = c(-20, 1500)) + scale_y_continuous(breaks=seq(0, 1500, 250))
+#MyFig5<-MyFig5 + coord_cartesian(xlim = c(1990, 2016)) + scale_x_continuous(breaks=seq(1991, 2014, 4))
+MyFig5<-MyFig5 + scale_y_continuous(breaks = seq(0, 1500, 250), limits = c(-20, 1510))
+MyFig5<-MyFig5 + coord_cartesian(xlim = c(1989, 2015)) + scale_x_discrete(labels=c("1991"," ", " ", "1994"," ", " ", " ", "1998"," ", " ", " ", "2002"," ", " ", " ", "2006"," ", " ", " ", "2010"," ", " ", " ", "2014"))
+
+MyFig5<-MyFig5 + geom_text(data = Fig5[Fig5$Year=="2013" & Fig5$Region=="Latin America",], aes(label = Region), hjust = 1, vjust = -0.5, size=7) #,fontface="bold"
+MyFig5<-MyFig5 + geom_text(data = Fig5[Fig5$Year=="2013" & Fig5$Region=="USA",], aes(label = Region), hjust = 1, vjust = 2, size=7) #,fontface="bold"
+MyFig5<-MyFig5 + geom_text(data = Fig5[Fig5$Year=="2013" & Fig5$Region=="Canada",], aes(label = Region), hjust = 1, vjust = -1, size=7) #,fontface="bold"
+MyFig5<-MyFig5 + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+                                    panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"),
+                                    plot.title = element_text(hjust=0.05, vjust=-1.8, face="bold", size=22),  
+                                    axis.title.x=element_text(colour="black", size = 18,vjust=-2),            #, face = "bold"
+                                    axis.title.y=element_text(colour="black", size = 18, vjust=2),          #, face = "bold"
+                                    axis.text=element_text(colour="black", size = 16),
+                                    plot.margin = unit(c(1,1,3,3), "cm"),                                          
+                                    legend.position = "none")
+
+MyFig5
+#############################################################################################################################
+#############################################################################################################################
+
+
+
+#############################################################################################################################
+#Fig. 14: PAPERS PER 1million RESIDENTS or PER CAPITA - DATA IN DIFFERENT PANELS
+#############################################################################################################################
+Fig14<-filter(DATA, Region == "LatAm" & Year >1990)
+
+#FOR PUBS PER CAPITA
+# MyFig14<- ggplot(Fig14, aes(x = Year, y = PubsPerCapita, group = Country.Name)) + geom_line(colour="red",size=0.7) +
+#   ylab(expression(paste("Publications ",italic("per capita")," (SCALE)"))) +
+
+#FOR PUBS PER 100K
+MyFig14<- ggplot(Fig14, aes(x = Year, y = PubsPerMilResidents, group = Country.Name)) + geom_line(colour="red",size=0.7) +
+  ylab("Publications per 1,000,000 residents") +
+  facet_wrap( ~ Country.Name, ncol=6, scales="free_x")+ggtitle("Figure 3")
+MyFig14<-MyFig14 + scale_x_continuous(limits = c(1989, 2015),labels=c("1991"," "," "," "," ","2014") )
+MyFig14<- MyFig14 + theme_bw()+theme(panel.grid.major = element_blank(), 
+                                     panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"),
+                                     plot.title = element_text(hjust=0.5, vjust=-70, face="bold", size=20), 
+                                     axis.title.x=element_text(colour="black", size = 20, vjust=-1.5),
+                                     axis.title.y=element_text(colour="black", size = 20, vjust=2),  #face = "bold", 
+                                     axis.text=element_text(colour="black", size = 13),
+                                     strip.text.x = element_text(size=12, face="bold", colour="midnightblue"),
+                                     plot.margin = unit(c(1,3,3,1), "cm"),   
+                                     panel.margin = unit(1.5, "lines"),    #Adds more space between the facets (=panels)
+                                     strip.background = element_blank(),
+                                     panel.border = element_rect(fill=NA, colour = "black", size=1, linetype="solid"))
+
+MyFig14
+#############################################################################################################################
+#############################################################################################################################
+
+#############################################################################################################################
+#Fig. 13: PAPERS PER 1US $ GDP OR PAPERS PER MILLION $ of GDP BY COUNTRY
+#############################################################################################################################
+#Fig13<-DATA
+Fig13<-filter(DATA, Region == "LatAm") #If you only want LATAM
+
+# #FOR PUBS PER $ GDP
+# MyFig13<- ggplot(Fig13, aes(x = Year, y = PubsPerGDP, group = Country.Name)) + geom_line(colour="red",size=0.7) + ylab("Publications per US$ of GDP ") +
+#   xlab("Year") +
+
+#FOR PUBS PER MILLION $ OF GDP
+MyFig13<- ggplot(Fig13, aes(x = Year, y = PubsPerMilGDP, group = Country.Name)) + geom_line(colour="red",size=0.7) + ylab("Publications per million $ of GDP") +
+  xlab("Year") +
+  facet_wrap( ~ Country.Name, ncol=6, scales="free_x")+ggtitle("Figure 4")      #scales="free_x" keeps the same y axis for all facets but allows you to modify x axis
+MyFig13<-MyFig13 + scale_x_continuous(limits = c(1989, 2015),labels=c("1991"," "," "," "," ","2014") )
+MyFig13<- MyFig13 + theme_bw()+theme(panel.grid.major = element_blank(), 
+                                     panel.grid.minor = element_blank(), 
+                                     axis.line = element_line(colour = "black"),
+                                     plot.title = element_text(hjust=0.5, vjust=-70, face="bold", size=20), 
+                                     axis.title.x=element_text(colour="black", size = 20, vjust=-1.5),  # add face="bold" if you want bold axis titles
+                                     axis.title.y=element_text(colour="black", size = 20, vjust=2),
+                                     axis.text=element_text(colour="black", size = 13),
+                                     strip.text.x = element_text(size=12, face="bold", colour="midnightblue"),
+                                     plot.margin = unit(c(1,3,3,1), "cm"),   
+                                     panel.margin = unit(1.5, "lines"),    #Adds more space between the facets (=panels)
+                                     strip.background = element_blank(),
+                                     panel.border = element_rect(fill=NA, colour = "black", size=1, linetype="solid"))
+MyFig13
+#############################################################################################################################
+#############################################################################################################################
+
+#############################################################################################################################
+# FIG 17 Map of total productivity 1991-2014 by each country
+#############################################################################################################################
+
+MyFig17<-filter(DATA, Region == "LatAm" & Year >1990)  #Reduce dataset to Latin America & 1991 On
+MyFig17<-aggregate(Pubs ~ Country.Name+Country.Code, data = MyFig16, sum)
+MyFig17<-arrange(MyFig17, Pubs)  #Arrange them from low to high - easier to see who is high and low
+
+MyFig17$Country.Name<- as.character(MyFig17$Country.Name)
+MyFig17$Country.Name[MyFig17$Country.Name == "El.Salvador"] <- "El Salvador"
+MyFig17$Country.Name[MyFig17$Country.Name == "Costa.Rica"] <- "Costa Rica"
+MyFig17$Country.Name<- as.factor(MyFig17$Country.Name)
+
+# making the maps: First map to the whole globe, then make the map just Latin America
+sPDF <- joinCountryData2Map( MyFig17, joinCode = "ISO3", nameJoinColumn = "Country.Code") 
+mapCountryData(sPDF, nameColumnToPlot="Pubs") #Maps your variable of interest into the map of the world
+# How to just plot to LATAM (with HT to http://stackoverflow.com/questions/28838866/mapping-all-of-latin-america-with-rworldmap/28863992#28863992)
+sPDFmyCountries <- sPDF[sPDF$NAME %in% MyFig17$Country.Name,] #select out your countries
+# use the bbox to define xlim & ylim
+#mapCountryData(sPDF, nameColumnToPlot="articles", xlim=bbox(sPDFmyCountries)[1,], ylim=bbox(sPDFmyCountries)[2,])
+
+#catMethod: ”pretty”, ”fixedWidth”, ”diverging”,”logFixedWidth”,”quantiles”,”categorical”,
+#or a numeric vector defining breaks.
+#breaks<-c(0,40,100,200,300,400,500,600,700,800)
+breaks<-seq(0, 3500, by = 100)
+#breaks<-c(seq(0, 1500, by = 100),3500)
+
+# OR BETTER YET: If you wanted just to display the boundaries of the countries you have 
+# (i.e. if you had all of the Latin American countries in your data) you could do :
+mapCountryData(sPDFmyCountries, nameColumnToPlot="Pubs", catMethod=breaks, 
+               colourPalette="heat", borderCol="black",  mapTitle = "Total Number of Articles Published\n(1991-2014)") #numCats=30
+
+mtext("Figure 5",side=1,line=4, font=2, cex=1)
+
+#############################################################################################################################
+#############################################################################################################################
+
+#############################################################################################################################
+# FIG 16 Map of % of total productivity 1991-2014 by each country
+#############################################################################################################################
+
+# Prep the data 
+MyFig16<-filter(DATA, Region == "LatAm" & Year >1990)  #Reduce dataset to Latin America & 1991 On
+MyFig16<-aggregate(Pubs ~ Country.Name+Country.Code, data = MyFig16, sum) #Total for each country over entire time period
+MyFig16$perc.total<-(MyFig16$Pubs/sum(MyFig16$Pubs))*100   #calculates each countrys percent of the total productivty 
+MyFig16$perc.total<-round(MyFig16$perc.total, 2)   #Round to 2 decimal places
+MyFig16<-arrange(MyFig16, Pubs)  #Arrange them from low to high - easier to see who is high and low
+
+MyFig16$Country.Name<- as.character(MyFig16$Country.Name)
+MyFig16$Country.Name[MyFig16$Country.Name == "El.Salvador"] <- "El Salvador"
+MyFig16$Country.Name[MyFig16$Country.Name == "Costa.Rica"] <- "Costa Rica"
+MyFig16$Country.Name<- as.factor(MyFig16$Country.Name)
+
+# making the maps: First map to the whole globe, then make the map just Latin America
+sPDF <- joinCountryData2Map( MyFig16, joinCode = "ISO3", nameJoinColumn = "Country.Code") 
+mapCountryData(sPDF, nameColumnToPlot="perc.total") #Maps your variable of interest into the map of the world
+# How to just plot to LATAM (with HT to http://stackoverflow.com/questions/28838866/mapping-all-of-latin-america-with-rworldmap/28863992#28863992)
+sPDFmyCountries <- sPDF[sPDF$NAME %in% MyFig16$Country.Name,] #select out your countries
+# use the bbox to define xlim & ylim
+#mapCountryData(sPDF, nameColumnToPlot="articles", xlim=bbox(sPDFmyCountries)[1,], ylim=bbox(sPDFmyCountries)[2,])
+# OR BETTER YET: If you wanted just to display the boundaries of the countries you have 
+# (i.e. if you had all of the Latin American countries in your data) you could do :
+
+#catMethod: ”pretty”, ”fixedWidth”, ”diverging”,”logFixedWidth”,”quantiles”,”categorical”,
+#or a numeric vector defining breaks.
+
+#Colour Palette Options:  ”heat”, ”diverging”, ”white2Black”, ”black2White”, ”topo”, ”rainbow”, ”terrain”, ”negpos8”, ”negpos9”
+#This is if you use catMethod with fixed breaks
+breaks<-seq(0,30, by = .05)
+mapCountryData(sPDFmyCountries, nameColumnToPlot="perc.total", catMethod=breaks, 
+               colourPalette="heat", borderCol="black",  mapTitle = ("Percent Contribution to Latin America's\nScientific Productivity (1991-2014)")) #numCats=30
+
+mtext("Figure 6",side=1,line=4, font=2, cex=1)
+
+# Adding labels for each country, requirespackage RASTER
+#text(sPDFmyCountries, labels="NAME")
+
+# df2=as.data.frame(sPDFmyCountries)
+# df2$latOffset=0 #4 degree offset
+# df2$lonOffset=0
+# text(df2$LON+df2$latOffset, df2$LAT+df2$lonOffset, labels=df2$Country.Code)
+
+#Try making one for offsetting Latin America, Central, and one for the Rest?
+
+df2=as.data.frame(sPDFmyCountries)
+
+df3<-filter(df2, Country.Code=="SLV") 
+df3$latOffset=-3 #4 degree offset
+df3$lonOffset=-3
+text(df3$LON+df3$latOffset, df3$LAT+df3$lonOffset, labels=df3$Country.Code)
+
+df4<-filter(df2, Country.Code=="CRI") 
+df4$latOffset=-3 #4 degree offset
+df4$lonOffset=-2
+text(df4$LON+df4$latOffset, df4$LAT+df4$lonOffset, labels=df4$Country.Code)
+
+df5<-filter(df2, Country.Code=="GTM") 
+df5$latOffset=-5 #4 degree offset
+df5$lonOffset=-2
+text(df5$LON+df5$latOffset, df5$LAT+df5$lonOffset, labels=df5$Country.Code)
+
+df6<-filter(df2, Country.Code=="PAN") 
+df6$latOffset=-3 #4 degree offset
+df6$lonOffset=-3
+text(df6$LON+df6$latOffset, df6$LAT+df6$lonOffset, labels=df6$Country.Code)
+
+df7<-filter(df2, Country.Code=="NIC") 
+df7$latOffset=5 #4 degree offset
+df7$lonOffset=0
+text(df7$LON+df7$latOffset, df7$LAT+df7$lonOffset, labels=df7$Country.Code)
+
+df8<-filter(df2, Country.Code=="HND") 
+df8$latOffset=3 #4 degree offset
+df8$lonOffset=3
+text(df8$LON+df8$latOffset, df8$LAT+df8$lonOffset, labels=df8$Country.Code)
+
+df9<-filter(df2, Country.Code=="CUB") 
+df9$latOffset=3 #4 degree offset
+df9$lonOffset=3
+text(df9$LON+df9$latOffset, df9$LAT+df9$lonOffset, labels=df9$Country.Code)
+
+
+
+centam<-c("SLV" , "CUB", "HND", "NIC", "PAN", "GTM", "CRI")
+all.latam<-df2$Country.Code
+NOT.centam<-setdiff(all.latam,centam)
+
+
+df10 <- df2[df2$Country.Code %in% NOT.centam,]
+df10$latOffset=0 #4 degree offset
+df10$lonOffset=0
+text(df10$LON+df10$latOffset, df10$LAT+df10$lonOffset, labels=df10$Country.Code)
+
+#############################################################################################################################
+#############################################################################################################################
+
+#############################################################################################################################
+## Total Plublications
+#############################################################################################################################
+
+Fig15<-filter(DATA, Region == "LatAm" & Year >1990)
+Fig15<-select(Fig15,Country.Name, Pubs, Year)
+
+PUBS.MEDIAN<-Fig15 %>%
+    group_by(Year) %>%
+  summarise(Pubs = median(Pubs))
+
+
+Fig15 <- merge(Fig15, PUBS.MEDIAN, by = 'Year', suffixes = c('.Country', '.Median')) #JOIN THE FUN to the others (Mean,median...
+
+MyFig15<- ggplot(Fig15, aes(x = Year, y = Pubs.Country, group = Country.Name, scales="free_y")) + geom_line(colour="red",size=0.7) + ylab("Publications per year") +
+  facet_wrap( ~ Country.Name, ncol=6, scales="free_x")+ggtitle("Figure 2") +
+  geom_line(aes(y = Pubs.Median), color = 'black', lty=2)
+
+MyFig15<-MyFig15 + scale_x_continuous(limits = c(1989, 2015),labels=c("1991"," "," "," "," ","2014") )
+MyFig15<-MyFig15 + theme_bw()+theme(panel.grid.major = element_blank(), 
+                                    panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"),
+                                    plot.title = element_text(hjust=0.5, vjust=-70, face="bold", size=20), 
+                                    axis.title.x=element_text(colour="black", size = 20,  vjust=-1.5), #face = "bold",
+                                    axis.title.y=element_text(colour="black", size = 20,  vjust=2), #face = "bold",
+                                    axis.text=element_text(colour="black", size = 13),
+                                    strip.text.x = element_text(size=12, face="bold", colour="midnightblue"),
+                                    plot.margin = unit(c(1,3,3,1), "cm"),   
+                                    panel.margin = unit(1.5, "lines"),
+                                    strip.background = element_blank(),
+                                    panel.border = element_rect(fill=NA, colour = "black", size=1, linetype="solid"))
+MyFig15
+#############################################################################################################################
+#############################################################################################################################
+
+
+#############################################################################################################################
+#Fig. 19: PAPERS PER PER CAPITA BY GDP PER CAPITA - DATA IN DIFFERENT PANELS WITH  EACH YEAR A PANEL
+#############################################################################################################################
+#Fig19<-DATA
+Fig19<-filter(DATA, Region == "LatAm") #If you only want LATAM
+Fig19<-filter(Fig19, Year==2013)
+#SELECTS ONLY WHAT YOU WANT
+
+
+Fig19<-select(Fig19,Country.Name, Country.Code, GDPPerCapita, PubsPerCapita,Year)
+MyFig19<- ggplot(Fig19, aes(x = GDPPerCapita, y = PubsPerCapita, group = Country.Code)) + geom_point() +
+  ylab("Publications Per Capita") + xlab("GDP per capita")+
+  facet_wrap( ~ Year, ncol=6, scales="free_x")+ggtitle("Figure X")
+# MyFig19<-MyFig19 + scale_x_continuous(limits = c(1989, 2015),labels=c("1991"," "," "," "," ","2019") )
+MyFig19<-MyFig19 + geom_text(aes(label=Country.Code),hjust=0, vjust=0)
+MyFig19<- MyFig19 + theme_bw()+theme(panel.grid.major = element_blank(), 
+                                     panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"),
+                                     plot.title = element_text(hjust=0.5, face="bold", vjust=-60, size=20), 
+                                     axis.title.x=element_text(colour="black", size = 20, vjust=-1.5),
+                                     axis.title.y=element_text(colour="black", size = 20, vjust=2),
+                                     axis.text=element_text(colour="black", size = 13),
+                                     strip.text.x = element_text(size=12, face="bold", colour="midnightblue"),
+                                     plot.margin = unit(c(1,3,3,1), "cm"),   
+                                     panel.margin = unit(1.5, "lines"),    #Adds more space between the facets (=panels)
+                                     strip.background = element_blank(),
+                                     
+                                     panel.border = element_rect(fill=NA, colour = "black", size=1, linetype="solid"))
+
+MyFig19
+#############################################################################################################################
+#############################################################################################################################
+
+
+###################################################
+###################################################
+##  BUILDING MULTI-PANEL FIGURES
+###################################################
+###################################################
+
+###################################################################################################################
+#FIGURE 1: REGIONAL comparison on productivity and % increase relative to 1980s
+main = textGrob("Figure 1", vjust = 0, gp = gpar(fontface = "bold", fontsize = 20))
+Fig1<-grid.arrange(MyFig1, MyFig5, sub=main, ncol=2, nrow=1) 
+#FIGURE 2: Publications per country with either LatAm mean or median as a scale
+Fig2<-MyFig15
+#FIGURE 3: Publications per capita per country (LatAm mean or median as a scale?)
+Fig3<-MyFig14
+#FIGURE 4: Publications per $ GDP per country (LatAm mean or median as a scale?)
+Fig4<-MyFig13
+
+
+#see to reorder the subplots http://stackoverflow.com/questions/15116081/controlling-order-of-facet-grid-facet-wrap-in-ggplot2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#############################################################################################################################
+#SANDBOX
+#############################################################################################################################
+
+#############################################################################################################################
 #Fig2 Productivity per year per country ***INCLUDES*** USA AND CANADA - all one panel
 #############################################################################################################################
-Fig2<-PUBS.COUNT
-MyFig2<-qplot(Year, Count, data = Fig2, color = Country.Name, geom = "line", ylab="Articles Produced Annually, 1991-2014")+ggtitle("B")
+Fig2<-DATA
+MyFig2<-qplot(Year, Pubs, data = Fig2, color = Country.Name, geom = "line", ylab="Articles Produced Annually, 1991-2014")+ggtitle("B")
 #This changes the color scheme of the lines
 #MyFig2<-MyFig2 + scale_color_brewer(palette = "Paired") #Changes the line color to one of the RcolorBrewer palettes
 #MyFig2<-MyFig2 + scale_colour_manual(values=c("gray35", "darkgreen", "blue2")) #Changes the line color
@@ -356,13 +682,11 @@ MyFig2
 #############################################################################################################################
 #############################################################################################################################
 
-
-
 #############################################################################################################################
 #Fig3 productivity per year per country ***WITHOUT*** USA or CANADA - all one panel
 #############################################################################################################################
-Fig3<-filter(PUBS.COUNT, Region == "LatAm")
-MyFig3<-qplot(Year, Count, data = Fig3, color = Country.Name, geom = "line",ylab="Articles Produced Annually, 1991-2014")+ggtitle("B")
+Fig3<-filter(DATA, Region == "LatAm")
+MyFig3<-qplot(Year, Pubs, data = Fig3, color = Country.Name, geom = "line",ylab="Articles Produced Annually, 1991-2014")+ggtitle("B")
 #This changes the color scheme of the lines
 #MyFig4a<-MyFig4a + scale_color_brewer(palette = "Paired") 
 #these removes the gray background, dots, and gridlines from the plot
@@ -379,12 +703,10 @@ MyFig3
 #############################################################################################################################
 #############################################################################################################################
 
-
-
 #############################################################################################################################
 #Fig. 4: PROP. CHANGE in PRODUCTIVITY RELATIVE TO AVG PER YEAR IN 80s (ALL REGIONS)
 #############################################################################################################################
-# Fig4<-PUBS.COUNT
+# Fig4<-DATA
 # Fig4<-as.data.frame(tapply(Fig4$Count, Fig4$Year, sum))
 # names(Fig4)[1] <- "Publications" #need to rename the column after tapply
 # Fig4$Year<-c(1992:2014)
@@ -393,40 +715,6 @@ MyFig3
 #                              panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
 #############################################################################################################################
 #############################################################################################################################
-
-
-
-#############################################################################################################################
-#Fig. 5: PROP. CHANGE in PRODUCTIVITY RELATIVE TO AVG PER YEAR IN 80s (BY REGION) 
-#############################################################################################################################
-# For Details on figure construction see Fig 1 Notatation
-Fig5<-PUBS.PROP.REG
-Fig5[Fig5=="LatAm"]<-"Latin America"
-MyFig5<-qplot(Year, Percent.Change, data = Fig5, color = Region, geom = "line", ylab="Increase in productivity over annual avg. in 1980s (%)") + ggtitle("B")
-MyFig5<-MyFig5 + scale_colour_manual(values=c("gray15", "darkgreen", "blue3")) #Changes the line color
-MyFig5<-MyFig5 + geom_line(aes(group=factor(Region)),size=1)  #CHnages the Line width
-#MyFig5<-MyFig5 + coord_cartesian(ylim = c(-20, 1500)) + scale_y_continuous(breaks=seq(0, 1500, 250))
-#MyFig5<-MyFig5 + coord_cartesian(xlim = c(1990, 2016)) + scale_x_continuous(breaks=seq(1991, 2014, 4))
-MyFig5<-MyFig5 + scale_y_continuous(breaks = seq(0, 1500, 250), limits = c(-20, 1510))
-MyFig5<-MyFig5 + coord_cartesian(xlim = c(1989, 2015)) + scale_x_discrete(labels=c("1991"," ", " ", "1994"," ", " ", " ", "1998"," ", " ", " ", "2002"," ", " ", " ", "2006"," ", " ", " ", "2010"," ", " ", " ", "2014"))
-
-MyFig5<-MyFig5 + geom_text(data = Fig5[Fig5$Year=="2013" & Fig5$Region=="Latin America",], aes(label = Region), hjust = 1, vjust = -0.5, size=7) #,fontface="bold"
-MyFig5<-MyFig5 + geom_text(data = Fig5[Fig5$Year=="2013" & Fig5$Region=="USA",], aes(label = Region), hjust = 1, vjust = 2, size=7) #,fontface="bold"
-MyFig5<-MyFig5 + geom_text(data = Fig5[Fig5$Year=="2013" & Fig5$Region=="Canada",], aes(label = Region), hjust = 1, vjust = -1, size=7) #,fontface="bold"
-MyFig5<-MyFig5 + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
-                                      panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"),
-                                      plot.title = element_text(hjust=0.05, vjust=-1.8, face="bold", size=22),  
-                                      axis.title.x=element_text(colour="black", size = 18,vjust=-2),            #, face = "bold"
-                                      axis.title.y=element_text(colour="black", size = 18, vjust=2),          #, face = "bold"
-                                      axis.text=element_text(colour="black", size = 16),
-                                      plot.margin = unit(c(1,1,3,3), "cm"),                                          
-                                      legend.position = "none")
-
-MyFig5
-#############################################################################################################################
-#############################################################################################################################
-
-
 
 #############################################################################################################################
 #Fig. 6: PROP. CHANGE in PRODUCTIVITY RELATIVE TO AVG PER YEAR IN 80s PER COUNTRY ***INCLUDES*** USA AND CANADA
@@ -441,8 +729,6 @@ MyFig6 + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = e
 #############################################################################################################################
 #############################################################################################################################
 
-
-
 #############################################################################################################################
 #Fig. 7: PROP. CHANGE in PRODUCTIVITY RELATIVE TO AVG PER YEAR IN 80s PER COUNTRY ***WITHOUT*** USA AND CANADA
 #############################################################################################################################
@@ -455,8 +741,6 @@ MyFig7 + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = e
                              panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
 #############################################################################################################################
 #############################################################################################################################
-
-
 
 #############################################################################################################################
 #Fig. 8: PAPERS PER CAPITA BY REGION
@@ -502,7 +786,6 @@ MyFig10 + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = 
 #############################################################################################################################
 #############################################################################################################################
 
-
 #############################################################################################################################
 #Fig. 11: PAPERS PER $ GDP BY REGION
 #############################################################################################################################
@@ -517,8 +800,6 @@ MyFig11 + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = 
 #############################################################################################################################
 #############################################################################################################################
 
-
-
 #############################################################################################################################
 #Fig. 12: PAPERS PER $ GDP BY COUNTRY **INCLUDES USA & CANADA***
 #############################################################################################################################
@@ -531,187 +812,6 @@ MyFig12 + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = 
                              panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
 #############################################################################################################################
 #############################################################################################################################
-
-
-
-#############################################################################################################################
-#Fig. 13: PAPERS PER 1US $ GDP OR PAPERS PER MILLION $ of GDP BY COUNTRY **NO USA & CANADA***
-#############################################################################################################################
-Fig13<-filter(PubsPerGDP, Region == "LatAm")
-
-# #FOR PUBS PER $ GDP
-# MyFig13<- ggplot(Fig13, aes(x = Year.Pubs, y = PubsPerGDP, group = Country.Name)) + geom_line(colour="red",size=0.7) + ylab("Publications per US$ of GDP ") +
-#   xlab("Year") +
-  
-#FOR PUBS PER MILLION $ OF GDP
-MyFig13<- ggplot(Fig13, aes(x = Year.Pubs, y = PubsPerMilofGDP, group = Country.Name)) + geom_line(colour="red",size=0.7) + ylab("Publications per million US$ of GDP ") +
-  xlab("Year") +
-  facet_wrap( ~ Country.Name, ncol=6, scales="free_x")+ggtitle("Figure 4")      #scales="free_x" keeps the same y axis for all facets but allows you to modify x axis
-MyFig13<-MyFig13 + scale_x_continuous(limits = c(1989, 2015),labels=c("1991"," "," "," "," ","2014") )
-MyFig13<- MyFig13 + theme_bw()+theme(panel.grid.major = element_blank(), 
-                                     panel.grid.minor = element_blank(), 
-                                     axis.line = element_line(colour = "black"),
-                                     plot.title = element_text(hjust=0.5, vjust=-60, face="bold", size=20), 
-                                     axis.title.x=element_text(colour="black", size = 20, vjust=-1.5),  # add face="bold" if you want bold axis titles
-                                     axis.title.y=element_text(colour="black", size = 20, vjust=2),
-                                     axis.text=element_text(colour="black", size = 13),
-                                     strip.text.x = element_text(size=12, face="bold", colour="midnightblue"),
-                                     plot.margin = unit(c(1,3,3,1), "cm"),   
-                                     panel.margin = unit(1.5, "lines"),    #Adds more space between the facets (=panels)
-                                     strip.background = element_blank(),
-                                     panel.border = element_rect(fill=NA, colour = "black", size=1, linetype="solid"))
-MyFig13
-#############################################################################################################################
-#############################################################################################################################
-
-
-
-#############################################################################################################################
-#Fig. 14: PAPERS PER 100K RESIDENTS or PER CAPITA - DATA IN DIFFERENT PANELS
-#############################################################################################################################
-Fig14<-filter(PubsPerCapita, Region == "LatAm" & Year >1990)
-
-#FOR PUBS PER CAPITA
-# MyFig14<- ggplot(Fig14, aes(x = Year, y = PubsPerCapita, group = Country.Name)) + geom_line(colour="red",size=0.7) +
-#   ylab(expression(paste("Publications ",italic("per capita")," (SCALE)"))) +
-
-#FOR PUBS PER 100K
-MyFig14<- ggplot(Fig14, aes(x = Year, y = PubsPer100K, group = Country.Name)) + geom_line(colour="red",size=0.7) +
-  ylab("Publications per 100,000 residents") +
-
-  facet_wrap( ~ Country.Name, ncol=6, scales="free_y")+ggtitle("Figure 3")
-MyFig14<-MyFig14 + scale_x_continuous(limits = c(1989, 2015),labels=c("1991"," "," "," "," ","2014") )
-MyFig14<- MyFig14 + theme_bw()+theme(panel.grid.major = element_blank(), 
-                               panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"),
-                               plot.title = element_text(hjust=0.5, vjust=-60, face="bold", size=20), 
-                               axis.title.x=element_text(colour="black", size = 20, vjust=-1.5),
-                               axis.title.y=element_text(colour="black", size = 20, face = "bold", vjust=2),
-                               axis.text=element_text(colour="black", size = 13),
-                               strip.text.x = element_text(size=12, face="bold", colour="midnightblue"),
-                               plot.margin = unit(c(1,3,3,1), "cm"),   
-                               panel.margin = unit(1.5, "lines"),    #Adds more space between the facets (=panels)
-                               strip.background = element_blank(),
-                               panel.border = element_rect(fill=NA, colour = "black", size=1, linetype="solid"))
-                               
-MyFig14
-#############################################################################################################################
-#############################################################################################################################
-
-#see to reorder the subplots http://stackoverflow.com/questions/15116081/controlling-order-of-facet-grid-facet-wrap-in-ggplot2
-                             
-
-
-#############################################################################################################################
-## Total Plublications
-#############################################################################################################################
-
-Fig15<-filter(PUBS.COUNT, Region == "LatAm" & Year >1990)
-Fig15$Country.Code<-NULL  
-Fig15$Region<-NULL
-# Fig15[4]<-NA
-# names(Fig15)[4] <- "LatAmMean"
-PUBS.AVG<-aggregate(Count ~ Year, data = Fig15, median)  #LINE IS THE MEDIAN COULD CHANGE TO MEAN
-Fig15 <- merge(Fig15, PUBS.AVG, by = 'Year', suffixes = c('.Country', '.Avg')) #JOIN THE FUN to the others (Mean,median...
-
-MyFig15<- ggplot(Fig15, aes(x = Year, y = Count.Country, group = Country.Name, scales="free_y")) + geom_line(colour="red",size=0.7) + ylab("Publications") +
-  facet_wrap( ~ Country.Name, ncol=6, scales="free_x")+ggtitle("Figure 2") +
-  geom_line(aes(y = Count.Avg), color = 'black', lty=2)
-
-MyFig15<-MyFig15 + scale_x_continuous(limits = c(1989, 2015),labels=c("1991"," "," "," "," ","2014") )
-MyFig15<-MyFig15 + theme_bw()+theme(panel.grid.major = element_blank(), 
-                                     panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"),
-                                     plot.title = element_text(hjust=0.5, vjust=-60, face="bold", size=20), 
-                                     axis.title.x=element_text(colour="black", size = 20,  vjust=-1.5), #face = "bold",
-                                     axis.title.y=element_text(colour="black", size = 20,  vjust=2), #face = "bold",
-                                     axis.text=element_text(colour="black", size = 13),
-                                     strip.text.x = element_text(size=12, face="bold", colour="midnightblue"),
-                                     plot.margin = unit(c(1,3,3,1), "cm"),   
-                                    panel.margin = unit(1.5, "lines"),
-                                    strip.background = element_blank(),
-                                    panel.border = element_rect(fill=NA, colour = "black", size=1, linetype="solid"))
-MyFig15
-#############################################################################################################################
-#############################################################################################################################
-
-
-#############################################################################################################################
-# FIG 16 Map of % of total productivity 1991-2014 by each country
-#############################################################################################################################
-
-# Prep the data 
-MyFig16<-filter(PUBS.COUNT, Region == "LatAm" & Year >1990)  #Reduce dataset to Latin America & 1991 On
-MyFig16<-aggregate(Count ~ Country.Name+Country.Code, data = MyFig16, sum) #Total for each country over entire time period
-MyFig16$perc.total<-(MyFig16$Count/sum(MyFig16$Count))*100   #calculates each countrys percent of the total productivty 
-MyFig16$perc.total<-round(MyFig16$perc.total, 2)   #Round to 2 decimal places
-MyFig16<-arrange(MyFig16, Count)  #Arrange them from low to high - easier to see who is high and low
-
-MyFig16$Country.Name<- as.character(MyFig16$Country.Name)
-MyFig16$Country.Name[MyFig16$Country.Name == "El.Salvador"] <- "El Salvador"
-MyFig16$Country.Name[MyFig16$Country.Name == "Costa.Rica"] <- "Costa Rica"
-MyFig16$Country.Name<- as.factor(MyFig16$Country.Name)
-
-# making the maps: First map to the whole globe, then make the map just Latin America
-sPDF <- joinCountryData2Map( MyFig16, joinCode = "ISO3", nameJoinColumn = "Country.Code") 
-mapCountryData(sPDF, nameColumnToPlot="perc.total") #Maps your variable of interest into the map of the world
-# How to just plot to LATAM (with HT to http://stackoverflow.com/questions/28838866/mapping-all-of-latin-america-with-rworldmap/28863992#28863992)
-sPDFmyCountries <- sPDF[sPDF$NAME %in% MyFig16$Country.Name,] #select out your countries
-# use the bbox to define xlim & ylim
-#mapCountryData(sPDF, nameColumnToPlot="articles", xlim=bbox(sPDFmyCountries)[1,], ylim=bbox(sPDFmyCountries)[2,])
-# OR BETTER YET: If you wanted just to display the boundaries of the countries you have 
-# (i.e. if you had all of the Latin American countries in your data) you could do :
-
-#catMethod: ”pretty”, ”fixedWidth”, ”diverging”,”logFixedWidth”,”quantiles”,”categorical”,
-#or a numeric vector defining breaks.
-
-#Colour Palette Options:  ”heat”, ”diverging”, ”white2Black”, ”black2White”, ”topo”, ”rainbow”, ”terrain”, ”negpos8”, ”negpos9”
-#This is if you use catMethod with fixed breaks
-breaks<-seq(0,30, by = .05)
-mapCountryData(sPDFmyCountries, nameColumnToPlot="perc.total", catMethod=breaks, 
-               colourPalette="heat", borderCol="black",  mapTitle = ("Percent of Articles Published from 1991-2014")) #numCats=30
-
-mtext("Figure 6",side=1,line=4, font=2, cex=1.5)
-
-# Adding labels for each country, requirespackage RASTER
-text(sPDFmyCountries, labels="NAME")
-#############################################################################################################################
-#############################################################################################################################
-
-
-#############################################################################################################################
-# FIG 17 Map of total productivity 1991-2014 by each country
-#############################################################################################################################
-
-MyFig17<-filter(PUBS.COUNT, Region == "LatAm" & Year >1990)  #Reduce dataset to Latin America & 1991 On
-MyFig17<-aggregate(Count ~ Country.Name+Country.Code, data = MyFig16, sum)
-MyFig17<-arrange(MyFig17, Count)  #Arrange them from low to high - easier to see who is high and low
-
-MyFig17$Country.Name<- as.character(MyFig17$Country.Name)
-MyFig17$Country.Name[MyFig17$Country.Name == "El.Salvador"] <- "El Salvador"
-MyFig17$Country.Name[MyFig17$Country.Name == "Costa.Rica"] <- "Costa Rica"
-MyFig17$Country.Name<- as.factor(MyFig17$Country.Name)
-
-# making the maps: First map to the whole globe, then make the map just Latin America
-sPDF <- joinCountryData2Map( MyFig17, joinCode = "ISO3", nameJoinColumn = "Country.Code") 
-mapCountryData(sPDF, nameColumnToPlot="Count") #Maps your variable of interest into the map of the world
-# How to just plot to LATAM (with HT to http://stackoverflow.com/questions/28838866/mapping-all-of-latin-america-with-rworldmap/28863992#28863992)
-sPDFmyCountries <- sPDF[sPDF$NAME %in% MyFig17$Country.Name,] #select out your countries
-# use the bbox to define xlim & ylim
-#mapCountryData(sPDF, nameColumnToPlot="articles", xlim=bbox(sPDFmyCountries)[1,], ylim=bbox(sPDFmyCountries)[2,])
-
-#catMethod: ”pretty”, ”fixedWidth”, ”diverging”,”logFixedWidth”,”quantiles”,”categorical”,
-#or a numeric vector defining breaks.
-#breaks<-c(0,40,100,200,300,400,500,600,700,800)
-breaks<-seq(0, 3500, by = 100)
-#breaks<-c(seq(0, 1500, by = 100),3500)
-
-# OR BETTER YET: If you wanted just to display the boundaries of the countries you have 
-# (i.e. if you had all of the Latin American countries in your data) you could do :
-mapCountryData(sPDFmyCountries, nameColumnToPlot="Count", catMethod=breaks, 
-               colourPalette="heat", borderCol="black",  mapTitle = "Number of Articles Published from 1991-2014") #numCats=30
-
-mtext("Figure 5",side=1,line=4, font=2, cex=1.5)
-
-
 
 #############################################################################################################################
 #Fig. 18: PAPERS PER (PER  GDP PER CAPITA) - DATA IN DIFFERENT PANELS
@@ -738,13 +838,12 @@ MyFig18
 #############################################################################################################################
 #############################################################################################################################
 
-
-
 #############################################################################################################################
 #Fig. 18: PAPERS PER (PER  GDP PER CAPITA) - DATA IN DIFFERENT PANELS WITH  EACH YEAR A PANEL
 #############################################################################################################################
 
 Fig18<-filter(PubsPerGDP, Year.Pubs >1990 & Region == "LatAm")
+
 MyFig18<- ggplot(Fig18, aes(x = GDPpercapita, y = Publications, group = Year.Pubs)) + geom_point() +
   ylab("Publications") + xlab("GDP per capita")+
   facet_wrap( ~ Year.Pubs, ncol=6, scales="free_x")+ggtitle("Figure X")
@@ -767,38 +866,47 @@ MyFig18
 #############################################################################################################################
 #############################################################################################################################
 
+#############################################################################################################################
+#Fig. 19: PAPERS PER PER CAPITA BY GDP PER CAPITA - DATA IN DIFFERENT PANELS WITH  EACH YEAR A PANEL
+#############################################################################################################################
 
+Fig19<-filter(PubsPerGDP, Year.Pubs >1990 & Region == "LatAm")
 
-###################################################
-###################################################
-##  BUILDING MULTI-PANEL FIGURES
-###################################################
-###################################################
+MyFig19<- ggplot(Fig19, aes(x = GDPpercapita, y = (Publications/PopSize), group = Year.Pubs)) + geom_point() +
+  ylab("Publications") + xlab("GDP per capita")+
+  facet_wrap( ~ Year.Pubs, ncol=6, scales="free_x")+ggtitle("Figure X")
+# MyFig19<-MyFig19 + scale_x_continuous(limits = c(1989, 2015),labels=c("1991"," "," "," "," ","2019") )
+MyFig19<-MyFig19 + geom_text(aes(label=Country.Code),hjust=0, vjust=0)
+MyFig19<- MyFig19 + theme_bw()+theme(panel.grid.major = element_blank(), 
+                                     panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"),
+                                     plot.title = element_text(hjust=0.5, face="bold", vjust=-60, size=20), 
+                                     axis.title.x=element_text(colour="black", size = 20, vjust=-1.5),
+                                     axis.title.y=element_text(colour="black", size = 20, vjust=2),
+                                     axis.text=element_text(colour="black", size = 13),
+                                     strip.text.x = element_text(size=12, face="bold", colour="midnightblue"),
+                                     plot.margin = unit(c(1,3,3,1), "cm"),   
+                                     panel.margin = unit(1.5, "lines"),    #Adds more space between the facets (=panels)
+                                     strip.background = element_blank(),
+                                     
+                                     panel.border = element_rect(fill=NA, colour = "black", size=1, linetype="solid"))
 
-###################################################################################################################
-#FIGURE 1: REGIONAL comparison on productivity and % increase relative to 1980s
-main = textGrob("Figure 1", vjust = 0, gp = gpar(fontface = "bold", fontsize = 20))
-Fig1<-grid.arrange(MyFig1, MyFig5, sub=main, ncol=2, nrow=1) 
-#FIGURE 2: Publications per country with either LatAm mean or median as a scale
-Fig2<-MyFig15
-#FIGURE 3: Publications per capita per country (LatAm mean or median as a scale?)
-Fig3<-MyFig14
-#FIGURE 4: Publications per $ GDP per country (LatAm mean or median as a scale?)
-Fig4<-MyFig13
+MyFig19
+#############################################################################################################################
+#############################################################################################################################
 
+#############################################################################################################################
+#TOTAL PRODUCTIVITY (ALL REGIONS TOGETHER)
+#############################################################################################################################
+# FigALL<-DATA
+# FigALL<-as.data.frame(tapply(FigALL$Count, FigALL$Year, sum))
+# names(FigALL)[1] <- "Publications" #need to rename the column after tapply
+# FigALL$Year<-c(1990:2014)
+# MyFigALL<-qplot(Year,Publications, data = FigALL, geom="line", main = "Total Articles, 1991-2014")
+# MyFigALL + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+#                             panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+#############################################################################################################################
+#############################################################################################################################
 
-
-
-
-
-
-
-
-
-
-##########################################################################################################################################
-# SANDBOX
-##########################################################################################################################################
 
 
 
@@ -808,7 +916,7 @@ Fig4<-MyFig13
 
 
 #line chart of %change per year per country
-MyFig8a<-qplot(Year, prop.change, data = PUBS.COUNT3, color = Country.Name, geom = "line",
+MyFig8a<-qplot(Year, prop.change, data = DATA3, color = Country.Name, geom = "line",
                colour = Country.Name,
                main = "prop change, 1991-2014")
 #This changes the color scheme of the lines
@@ -876,7 +984,7 @@ qplot(PopSize, GDP, data = POP2) + facet_wrap(~ Country.Name, scales = "free")
 
 str(Fig2)
 #Figure 2: 
-Fig2<-filter(PUBS.COUNT, Region == "LatAm" & Year >1990)
+Fig2<-filter(DATA, Region == "LatAm" & Year >1990)
 Fig2<-aggregate(Count ~ Country.Name+Country.Code, data = Fig2, sum)
 Fig2$perc.total<-(Fig2$Count/sum(Fig2$Count))*100
 Fig2<-arrange(Fig2, Count)

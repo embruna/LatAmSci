@@ -12,9 +12,9 @@ GDPprep <- function(x) {
   GDPdata$Indicator.Name<-as.factor("GDP")
   #Add columns with data source
   GDPdata$Data.Source<-as.factor("WB")
-  GDPdata$Country.Name<-gsub("Venezuela,.RB", "Venezuela", GDPdata$Country.Name)
-  GDPdata$Country.Name<-gsub("El Salvador", "El.Salvador", GDPdata$Country.Name)
-  GDPdata$Country.Name<-gsub("Costa Rica", "Costa.Rica", GDPdata$Country.Name)
+  GDPdata$Country.Name<-gsub("Venezuela RB", "Venezuela", GDPdata$Country.Name)
+#   GDPdata$Country.Name<-gsub("El Salvador", "El.Salvador", GDPdata$Country.Name)
+#   GDPdata$Country.Name<-gsub("Costa Rica", "Costa.Rica", GDPdata$Country.Name)
   GDPdata$Country.Name<-as.factor(GDPdata$Country.Name)
   
   #Convert to Long Form

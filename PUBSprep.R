@@ -10,10 +10,10 @@ PUBSdata$Country.Code[PUBSdata$Country.Name == "Bolivia"]  <- "BOL"
 PUBSdata$Country.Code[PUBSdata$Country.Name == "Brazil"]  <- "BRA"
 PUBSdata$Country.Code[PUBSdata$Country.Name == "Chile"]  <- "CHL"
 PUBSdata$Country.Code[PUBSdata$Country.Name == "Colombia"]  <-"COL"
-PUBSdata$Country.Code[PUBSdata$Country.Name == "Costa.Rica"]  <-"CRI"
+PUBSdata$Country.Code[PUBSdata$Country.Name == "Costa Rica"]  <-"CRI"
 PUBSdata$Country.Code[PUBSdata$Country.Name == "Cuba"]  <- "CUB"
 PUBSdata$Country.Code[PUBSdata$Country.Name == "Ecuador"]  <-"ECU"
-PUBSdata$Country.Code[PUBSdata$Country.Name == "El.Salvador"]  <-"SLV"
+PUBSdata$Country.Code[PUBSdata$Country.Name == "El Salvador"]  <-"SLV"
 PUBSdata$Country.Code[PUBSdata$Country.Name == "Guatemala"]  <-"GTM"
 PUBSdata$Country.Code[PUBSdata$Country.Name == "Honduras"]  <-"HND"
 PUBSdata$Country.Code[PUBSdata$Country.Name == "Mexico"]  <-"MEX"
@@ -23,7 +23,7 @@ PUBSdata$Country.Code[PUBSdata$Country.Name == "Paraguay"]  <-"PRY"
 PUBSdata$Country.Code[PUBSdata$Country.Name == "Peru"]  <-"PER"
 PUBSdata$Country.Code[PUBSdata$Country.Name == "Uruguay"]  <-"URY"
 PUBSdata$Country.Code[PUBSdata$Country.Name == "Venezuela"]  <-"VEN"
-PUBSdata$Country.Code[PUBSdata$Country.Name == "United.States"]  <-"USA"
+PUBSdata$Country.Code[PUBSdata$Country.Name == "United States"]  <-"USA"
 PUBSdata$Country.Code[PUBSdata$Country.Name == "Canada"]  <-"CAN"
 
 #add columns with an indicator Name and source of the data
@@ -41,6 +41,7 @@ PUBSdata$Year<-as.numeric(PUBSdata$Year)
 PUBSdata$Region<-"LatAm"
 PUBSdata$Region[PUBSdata$Country.Code == "USA"]<-"USA"
 PUBSdata$Region[PUBSdata$Country.Code == "CAN"]<-"Canada"
+
 
 #reorder the columns (this will make them match up with SESData later)
 PUBSdata<-PUBSdata[,c(1,5,6,2,7,4,3,8)]

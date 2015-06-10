@@ -10,9 +10,9 @@ WBEDprep <- function(x) {
   #Reduces it down to juyst the countries for which you have a assigned a code.
   WBEDdata<-WBEDdata[complete.cases(WBEDdata[,"Country.Code"]),]
   #Correct the names of 2 of the countries
-  WBEDdata$Country.Name<-gsub("Venezuela,.RB", "Venezuela", WBEDdata$Country.Name)
-  WBEDdata$Country.Name<-gsub("El Salvador", "El.Salvador", WBEDdata$Country.Name)
-  WBEDdata$Country.Name<-gsub("Costa Rica", "Costa.Rica", WBEDdata$Country.Name)
+  WBEDdata$Country.Name<-gsub("Venezuela RB", "Venezuela", WBEDdata$Country.Name)
+#   WBEDdata$Country.Name<-gsub("El Salvador", "El.Salvador", WBEDdata$Country.Name)
+#   WBEDdata$Country.Name<-gsub("Costa Rica", "Costa.Rica", WBEDdata$Country.Name)
   WBEDdata$Country.Name<-as.factor(WBEDdata$Country.Name)
   
   

@@ -16,37 +16,49 @@
 require(mgcv)
 #1. pull the data you need from ALLDATA and organize what you need (GDP, PopSize,Productivity, COuntry ID)
 
-ALLDATA<-rbind(GDP, PopSize,PUBS)
-ALLDATA<-filter(ALLDATA, Year >= 1990)
-#str(ALLDATA)
+# ALLDATA<-rbind(GDP, PopSize,PUBS)
+# ALLDATA<-filter(ALLDATA, Year >= 1990)
 
-condition <- c("GDP", "PopSize", "PUBS.TOTL")
-GAMdata<-dplyr::filter(ALLDATA, Indicator.Code %in% condition)
-GAMdata<-filter(GAMdata, Year >= 1991 & Year<2015)
-GAMdata$Data.Source<-NULL #these aren't needed here
-GAMdata$Indicator.Name<-NULL  #these aren't needed here
-GAMdata$Country.Code<-NULL  #these aren't needed here
-#GAMdata$Country.Name<-NULL  #these aren't needed here
-str(GAMdata)
-#COSTA RICA AND USA GDP BEING LOST IN TRANSITION FROM LONG TO WIDE IN NEXT STEP
-
-GAMdata<-tidyr::spread(GAMdata, Indicator.Code, Value) #go from long to wide form
-GAMdata<-dplyr::mutate(GAMdata, pubs.per.capita = PUBS.TOTL/PopSize)
-GAMdata<-dplyr::mutate(GAMdata, pubs.per.GDP = PUBS.TOTL/GDP)
+ALLDATA<-filter(PubsPerGDP, Year.GDP >= 1990)
+str(ALLDATA)
+arrange(ALLDATA, PopSize)
+# condition <- c("GDP", "PopSize", "PUBS.TOTL" )
+# GAMdata<-dplyr::filter(ALLDATA, Indicator.Code %in% condition)
+# GAMdata<-filter(GAMdata, Year >= 1991 & Year<2015)
+# GAMdata$Data.Source<-NULL #these aren't needed here
+# GAMdata$Indicator.Name<-NULL  #these aren't needed here
+# GAMdata$Country.Code<-NULL  #these aren't needed here
+# #GAMdata$Country.Name<-NULL  #these aren't needed here
+# str(GAMdata)
+# #COSTA RICA AND USA GDP BEING LOST IN TRANSITION FROM LONG TO WIDE IN NEXT STEP
+# 
+# GAMdata<-tidyr::spread(GAMdata, Indicator.Code, Value) #go from long to wide form
+# GAMdata<-dplyr::mutate(GAMdata, pubs.per.capita = PUBS.TOTL/PopSize)
+# GAMdata<-dplyr::mutate(GAMdata, pubs.per.GDP = PUBS.TOTL/GDP)
 
 #Toggle these off if you want to INCLUDE Canda and USA in analyses
-GAMdata<-dplyr::filter(GAMdata, Country.Name != "United.States")
-GAMdata<-dplyr::filter(GAMdata, Country.Name != "Canada")
+GAMdata<-dplyr::filter(ALLDATA, Country.Name != "United.States")
+GAMdata<-dplyr::filter(ALLDATA, Country.Name != "Canada")
+
+
 
 #2. Identify the dependent variable and the different independent variables
-yALL<-GAMdata$pubs.per.pop.size
+# yALL<-GAMdata$pubs.per.pop.size
+# x0ALL<-GAMdata$Country.Name
+# x1ALL<-GAMdata$Year
+# x2ALL<-GAMdata$GDP
+# x3ALL<-GAMdata$PopSize
+
+yALL<-GAMdata$Publications
 x0ALL<-GAMdata$Country.Name
-x1ALL<-GAMdata$Year
+x1ALL<-GAMdata$Year.Pubs
+# x2ALL<-GAMdata$GDPpercapita
 x2ALL<-GAMdata$GDP
-x3ALL<-GAMdata$PopSize
+# x2ALL<-GAMdata$PopSize
+
 
 #3. A little visualization: Plot publications, GDP, and PopSize over time
-op <- par(mfcol = c(3, 1))
+op <- par(mfcol = c(2, 1))
 c11 <- plot(x1ALL, yALL, xlab="Year", ylab="pubs", mfg=c(1, 1))
 c21 <- plot(x1ALL, x2ALL, xlab="Year", ylab="GDP", mfg=c(2, 1))
 c31 <- plot(x1ALL, x3ALL, xlab="Year", ylab="PopSize", mfg=c(3, 1))
@@ -86,6 +98,15 @@ print(lm_summaryALL5)
 lmALL6=gam(yALL~x1ALL+x0ALL+x2ALL,family=poisson)
 lm_summaryALL6=summary(lmALL6)
 print(lm_summaryALL6)
+
+#LINEAR 7: Country+GDP
+lmALL7=gam(yALL~x0ALL+x2ALL,family=poisson)
+lm_summaryALL7=summary(lmALL7)
+print(lm_summaryALL7)
+
+
+
+
 
 # SMOOTHED MODELS
 #SMOOTHED 1: Country (categorical) + Year (smoothed)

@@ -13,9 +13,9 @@ RDprep <- function(x) {
   
   RDData$Data.Source<-as.factor("UNESCO")
   RDData$Indicator.Name<-as.factor("R&D")
-  RDData$Country.Name<-gsub("Venezuela,.RB", "Venezuela", RDData$Country.Name)
-  RDData$Country.Name<-gsub("El Salvador", "El.Salvador", RDData$Country.Name)
-  RDData$Country.Name<-gsub("Costa Rica", "Costa.Rica", RDData$Country.Name)
+  RDData$Country.Name<-gsub("Venezuela RB", "Venezuela", RDData$Country.Name)
+#   RDData$Country.Name<-gsub("El Salvador", "El.Salvador", RDData$Country.Name)
+#   RDData$Country.Name<-gsub("Costa Rica", "Costa.Rica", RDData$Country.Name)
   RDData$Country.Name<-as.factor(RDData$Country.Name)
   
   #Convert to Long Form

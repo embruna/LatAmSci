@@ -12,9 +12,9 @@ PopSizeData<-PopSizeData[PopSizeData$Country.Code=="ARG" | PopSizeData$Country.C
 PopSizeData<-PopSizeData[, -(5:30)]
 PopSizeData$Data.Source<-as.factor("WB")
 PopSizeData$Indicator.Name<-as.factor("PopSize")
-PopSizeData$Country.Name<-gsub("Venezuela,.RB", "Venezuela", PopSizeData$Country.Name)
-PopSizeData$Country.Name<-gsub("El Salvador", "El.Salvador", PopSizeData$Country.Name)
-PopSizeData$Country.Name<-gsub("Costa Rica", "Costa.Rica", PopSizeData$Country.Name)
+PopSizeData$Country.Name<-gsub("Venezuela RB", "Venezuela", PopSizeData$Country.Name)
+# PopSizeData$Country.Name<-gsub("El Salvador", "El.Salvador", PopSizeData$Country.Name)
+# PopSizeData$Country.Name<-gsub("Costa Rica", "Costa.Rica", PopSizeData$Country.Name)
 PopSizeData$Country.Name<-as.factor(PopSizeData$Country.Name)
 #summary(PopSizeData)
 

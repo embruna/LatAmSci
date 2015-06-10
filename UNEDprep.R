@@ -5,8 +5,8 @@ UNEDprep <- function(x) {
      
   #Correct name of two of the countries
   UNEDdata$Country<-gsub(" ", ".", UNEDdata$Country)
-  UNEDdata$Country[UNEDdata$Country == "Venezuela.(Bolivarian.Republic.of)"] <- "Venezuela"
-  UNEDdata$Country[UNEDdata$Country == "Bolivia.(Plurinational.State.of)"] <- "Bolivia"
+  UNEDdata$Country[UNEDdata$Country == "Venezuela (Bolivarian Republic of)"] <- "Venezuela"
+  UNEDdata$Country[UNEDdata$Country == "Bolivia (Plurinational State of)"] <- "Bolivia"
   UNEDdata$Country<-as.factor(UNEDdata$Country)
   
   UNEDdata$Country.Code<- NA
@@ -14,11 +14,11 @@ UNEDprep <- function(x) {
   UNEDdata$Country.Code[UNEDdata$Country == "Bolivia"]  <- "BOL"
   UNEDdata$Country.Code[UNEDdata$Country == "Brazil"]  <- "BRA"
   UNEDdata$Country.Code[UNEDdata$Country == "Chile"]  <- "CHL"
-  UNEDdata$Country.Code[UNEDdata$Country == "Costa.Rica"]  <-"CRI"
+  UNEDdata$Country.Code[UNEDdata$Country == "Costa Rica"]  <-"CRI"
   UNEDdata$Country.Code[UNEDdata$Country == "Colombia"]  <- "COL"
   UNEDdata$Country.Code[UNEDdata$Country == "Cuba"]  <- "CUB"
   UNEDdata$Country.Code[UNEDdata$Country == "Ecuador"]  <-"ECU"
-  UNEDdata$Country.Code[UNEDdata$Country == "El.Salvador"]  <-"SLV"
+  UNEDdata$Country.Code[UNEDdata$Country == "El Salvador"]  <-"SLV"
   UNEDdata$Country.Code[UNEDdata$Country == "Guatemala"]  <-"GTM"
   UNEDdata$Country.Code[UNEDdata$Country == "Honduras"]  <-"HND"
   UNEDdata$Country.Code[UNEDdata$Country == "Mexico"]  <-"MEX"
@@ -29,7 +29,7 @@ UNEDprep <- function(x) {
   UNEDdata$Country.Code[UNEDdata$Country == "Uruguay"]  <-"URY"
   UNEDdata$Country.Code[UNEDdata$Country == "Venezuela"]  <-"VEN"
   UNEDdata$Country.Code[UNEDdata$Country == "Canada"]  <-"CAN"
-  UNEDdata$Country.Code[UNEDdata$Country == "United.States"]  <-"USA"
+  UNEDdata$Country.Code[UNEDdata$Country == "United States"]  <-"USA"
   
   UNEDdata<-UNEDdata[complete.cases(UNEDdata[,"Country.Code"]),] #Reduces it down to juyst the countries for which you have a assigned a code.
   UNEDdata$Country.Code<-as.factor(UNEDdata$Country.Code) #they were being converted as characters, so convert them to factors
