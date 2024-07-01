@@ -16,10 +16,10 @@
 require(mgcv)
 #1. pull the data you need from ALLDATA and organize what you need (GDP, PopSize,Productivity, COuntry ID)
 
-# ALLDATA<-rbind(GDP, PopSize,PUBS)
+#ALLDATA<-rbind(GDP, PopSize,PUBS)
 # ALLDATA<-filter(ALLDATA, Year >= 1990)
-
-ALLDATA<-filter(PubsPerGDP, Year.GDP >= 1990)
+ALLDATA<-DATA
+ALLDATA<-filter(ALLDATA,Year >= 1990)
 str(ALLDATA)
 arrange(ALLDATA, PopSize)
 # condition <- c("GDP", "PopSize", "PUBS.TOTL" )
@@ -49,9 +49,9 @@ GAMdata<-dplyr::filter(ALLDATA, Country.Name != "Canada")
 # x2ALL<-GAMdata$GDP
 # x3ALL<-GAMdata$PopSize
 
-yALL<-GAMdata$Publications
+yALL<-GAMdata$Pubs
 x0ALL<-GAMdata$Country.Name
-x1ALL<-GAMdata$Year.Pubs
+x1ALL<-GAMdata$Year
 # x2ALL<-GAMdata$GDPpercapita
 x2ALL<-GAMdata$GDP
 # x2ALL<-GAMdata$PopSize

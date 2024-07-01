@@ -14,19 +14,15 @@
 #setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/refnet")
 ##  Set this to wherever you unzipped the archive folders (not /src):
 
-library(dplyr)
-library(tidyr)
-library(ggplot2)
 #library(RColorBrewer)
+library(tidyverse)
 library(grid)
 library(gridExtra)
 library(RGraphics)
 library(rworldmap)
 #library(raster)
 
-rm(list=ls())
 #LOAD THE NECESSARY FUNCTIONS
-setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/LatAmSci")
 source("QSprep.R")
 source("UniRankSummary.R")
 source("GDPprep.R")
@@ -37,21 +33,21 @@ source("UNEDprep.R")
 source("PUBSprep.R")
 
 #LOAD THE DATASETS
-setwd("/Volumes/ifas/Emilio's Folder Current/RESEARCH/LatAmScience/Data") #These data are in a different Folder from the code
+
 #Importing QS UNIVERSITY RANKINGS DATA on Latin America's top 100 Universities
-UNIRANK<-read.csv("QS.csv", dec=".", header = TRUE, sep = ",", na.strings='NULL', check.names=FALSE)
+UNIRANK<-read_csv("./data/QS.csv")
 #Importing World Bank Data on GDP
-GDPdata<-read.csv("GDP.csv", dec=".", header = TRUE, sep = ",", check.names=FALSE)
+GDPdata<-read_csv("./data/GDP.csv")
 #Importing World Bank Data on total population size per country
-PopSizeData<-read.csv("PopSize.csv", dec=".", header = TRUE, sep = ",", check.names=FALSE)
+PopSizeData<-read_csv("./data/PopSize.csv")
 #Importing the Investment in R&D Data. 
-RDData<-read.csv("R&D.csv", dec=".", header = TRUE, sep = ",", check.names=FALSE)
+RDData<-read_csv("./data/R&D.csv")
 #Importing World Bank Education Data
-WBEDdata<-read.csv("WorldBankEdData.csv", dec=".", header = TRUE, sep = ",", check.names=FALSE)
+WBEDdata<-read_csv("./data/WorldBankEdData.csv")
 #Importing data of publications per year per country
-PUBSdata<-read.csv("PUBCOUNT_21may2015.csv", dec=".", header = TRUE, sep = ",", na.strings='NULL', check.names=FALSE)
+PUBSdata<-read_csv("./data/PUBCOUNT_21may2015.csv")
 #Importing UN Education Data
-UNEDdata<-read.csv("UNDP_EdIndex.csv", dec=".", header = TRUE, sep = ",", na.strings='NULL', check.names=FALSE)
+UNEDdata<-read_csv("./data/UNDP_EdIndex.csv")
 
 
 ###################################################
@@ -162,7 +158,7 @@ DATA$PubsPerGDP<-DATA$Pubs/DATA$GDP #Pubs per $ GDP   #####NEED TO MAKE GDP in Y
 DATA$PubsPerMilGDP<-DATA$Pubs/DATA$GDPxMil #Pubs per million $ GDP   #####NEED TO MAKE GDP in YR t-1
 DATA$PubsPerMilGDP<-round(DATA$PubsPerMilGDP,8) #Round to 8 digits
 
-DATA$Efficiency<-(DATA$PubsPerCapita/DATA$GDPPerCapita)
+DATA$Efficiency<-DATA$PubsPerCapita/DATA$GDPPerCapita
 DATA <- DATA[order(DATA$Efficiency),] 
 #############################################################################################################################
 ##  PERCENT CHANGE IN PUBLICATIONS PRODCUED By COUNTRY OVER AVG PER YEAR 1981-1990
@@ -395,21 +391,13 @@ MyFig13
 #############################################################################################################################
 
 MyFig17<-filter(DATA, Region == "LatAm" & Year >1990)  #Reduce dataset to Latin America & 1991 On
-MyFig17<-MyFig17 %>%
-  group_by(Country.Code, Country.Name) %>%
-  summarise(Pubs = sum(Pubs))
+MyFig17<-aggregate(Pubs ~ Country.Name+Country.Code, data = MyFig16, sum)
 MyFig17<-arrange(MyFig17, Pubs)  #Arrange them from low to high - easier to see who is high and low
 
 MyFig17$Country.Name<- as.character(MyFig17$Country.Name)
 MyFig17$Country.Name[MyFig17$Country.Name == "El.Salvador"] <- "El Salvador"
 MyFig17$Country.Name[MyFig17$Country.Name == "Costa.Rica"] <- "Costa Rica"
 MyFig17$Country.Name<- as.factor(MyFig17$Country.Name)
-
-MyFig17<-MyFig17 %>%
-  group_by(Country.Code, Country.Name) %>%
-  summarise(Pubs = sum(Pubs))
-
-
 
 # making the maps: First map to the whole globe, then make the map just Latin America
 sPDF <- joinCountryData2Map( MyFig17, joinCode = "ISO3", nameJoinColumn = "Country.Code") 
@@ -535,7 +523,7 @@ text(df10$LON+df10$latOffset, df10$LAT+df10$lonOffset, labels=df10$Country.Code)
 #############################################################################################################################
 
 #############################################################################################################################
-## Total Plublications by Year 
+## Total Plublications
 #############################################################################################################################
 
 Fig15<-filter(DATA, Region == "LatAm" & Year >1990)
@@ -601,67 +589,6 @@ MyFig19
 #############################################################################################################################
 #############################################################################################################################
 
-
-#############################################################################################################################
-#Fig20 productivity per year per region
-#############################################################################################################################
-Fig20<-DATA  #create a dataframe to make this figure
-Fig20<-Fig20 %>% 
-  filter(Year>=2008 & Year< 2014) %>%
-  select(Efficiency, Country.Name, Country.Code, Year)
-
-# Fig20<-aggregate(Efficiency ~ Country.Name+Country.Code, data = Fig20, sum)
-
-EFFMEAN<-Fig20 %>%
-  group_by(Country.Code) %>%
-  summarise(Mean.Eff = mean(Efficiency)) 
- 
-EFFSD<-Fig20 %>%
-  group_by(Country.Name) %>%
-  summarise(SD.Eff = sd(Efficiency)) 
-
-Fig20<-cbind(EFFMEAN,EFFSD)
-
-Fig20$Country.Name = factor(Fig20$Country.Name,levels(Fig20$Country.Name)[order(Fig20$Mean.Eff)])
-
-Fig20$Country.Name= factor(Fig20$Country.Name, levels=Fig20$Country.Name[order(Fig20$Mean.Eff)], ordered=TRUE)
-
-MyFig20<-qplot(Country.Name, Mean.Eff, data=Fig20, xlab="Country", ylab="Efficiency (Ratio of GDP per Capita: Publications Per Capita") 
-MyFig20<-MyFig20+geom_point() +geom_text(aes(label=Country.Code),hjust=0, vjust=-1, angle=45)
-# The following lines are options for changing the colors of the lines
-#MyFig20<-MyFig20 + scale_color_brewer(palette = "Paired")   #Changes the line color tothe RcolorBrewer palette "Paired"
-# MyFig20<-MyFig20 + scale_colour_manual(values=c("gray15", "darkgreen", "blue3"))  #I chose my own colors for the lines
-# MyFig20<-MyFig20 + geom_line(aes(group=factor(Region)),size=1)  #Changes the thickness of the lines
-# The following two-part line 1) sets the Y axix and 2) sets the frequency of the tick marks
-MyFig20<-MyFig20 + coord_cartesian(ylim = c(-0.0000000001, 0.00000000225)) + scale_y_continuous(breaks=seq(0, 0.00000000225, 0.0000000005)) 
-# I wanted to change one of the labels on X axis. to do so need scale_x_discrete. Left in Scale_X_continuous to show how would be for numerical axes
-# MyFig20<-MyFig20 + scale_y_continuous(breaks = seq(0, 3500, 500), limits = c(-20, 3500))
-# MyFig20<-MyFig20 + coord_cartesian(xlim = c(1988, 2015)) + scale_x_discrete(labels=c("Avg. per yr\n1981-1990" ," ", " ", " ", "1994"," ", " ", " ", "1998"," ", " ", " ", "2002"," ", " ", " ", "2006"," ", " ", " ", "2010"," ", " ", " ", "2014"))
-# # The following selects the theme and manipulates elements of the plot
-# I wanted to remove the gray background, dots, and gridlines from the plot
-MyFig20<-MyFig20 + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
-                                    panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"), #sets colors of axes
-                                    axis.text.x = element_blank(),
-                                    plot.title = element_text(hjust=0.05, vjust=-1.8, face="bold", size=22),        #Sets title size, style, location
-                        
-                                    axis.title.x=element_text(colour="black", size = 0, vjust=-2),            #sets x axis title size, style, distance from axis #add , face = "bold" if you want bold
-                                    axis.title.y=element_text(colour="black", size = 18, vjust=2),            #sets y axis title size, style, distance from axis #add , face = "bold" if you want bold
-                                    axis.text=element_text(colour="black", size = 16),                              #sets size and style of labels on axes
-                                    plot.margin = unit(c(1,3,2,1), "cm"),                                          #Changes the margins around the plot. This will help with spacing in multi plt panels
-                                    legend.position = "none")                                                       #Removes the Legend
-
-MyFig20
-# #LEGEND
-# #If you want a legend in the figure instead of labeled lines, comment out three label lines above and 
-# #add these lines inside theme(---)
-# legend.title=element_blank(), #Deletes the title of the legend
-# legend.text=element_text(colour="black", size = 16, face = "bold"), #Increases the size of the names on the legend
-# legend.position=c(.8, .5),  #Position of the legend on the plot
-# legend.background = element_rect(fill=NULL, size=0.5, colour="black", linetype="solid"), #Puts a box around the legend and removes grey background
-# legend.key = element_blank() 
-
-#############################################################################################################################
-#############################################################################################################################
 
 ###################################################
 ###################################################
@@ -759,14 +686,17 @@ MyFig3<-qplot(Year, Pubs, data = Fig3, color = Country.Name, geom = "line",ylab=
 #This changes the color scheme of the lines
 #MyFig4a<-MyFig4a + scale_color_brewer(palette = "Paired") 
 #these removes the gray background, dots, and gridlines from the plot
+MyFig3<-MyFig3 + geom_line(size=1)  
 MyFig3<-MyFig3 + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
                                       panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"),
                                       plot.title = element_text(hjust=0.02, face="bold", size=18), legend.title=element_blank(),
-                                      legend.text=element_text(colour="black", size = 16, face = "bold"),
-                                      legend.position=c(.1, .6), axis.text=element_text(colour="black", size = 16),
+                                      #legend.text=element_text(colour="black", size = 16, face = "bold"),
+                                      #legend.position=c(.1, .6), axis.text=element_text(colour="black", size = 16),
                                       axis.title.x=element_text(colour="black", size = 20, face = "bold"),
                                       axis.title.y=element_text(colour="black", size = 20, face = "bold"),
-                                      legend.key = element_blank())
+                                      #legend.key = element_blank(),
+                                    axis.text=element_text(colour="black", face="bold", size = 13),
+                                      legend.position="none")
 
 MyFig3
 #############################################################################################################################
@@ -789,12 +719,28 @@ MyFig3
 #Fig. 6: PROP. CHANGE in PRODUCTIVITY RELATIVE TO AVG PER YEAR IN 80s PER COUNTRY ***INCLUDES*** USA AND CANADA
 #############################################################################################################################
 Fig6<-PUBS.PROP.NAT
-MyFig6<-qplot(Year, Percent.Change, data = Fig6, color = Country.Name, geom = "line",main = "% Increase in articles over 1995 (1st year in WOS), 1991-2014")
+Fig6[2:26] <- list(NULL)
+Fig6<-gather(Fig6,"Year", "Percent.Change", 2:25)
+Fig6$Year<-as.numeric(levels(Fig6$Year))[Fig6$Year] 
+Fig6<-arrange(Fig6,Year, Percent.Change)
+MyFig6<-qplot(Year, Percent.Change, data = Fig6, color = Country.Name, geom = "smooth", se=FALSE, ylab="Percent Change", main = "  ")
+# MyFig6 + stat_smooth(se = FALSE)
 #This changes the color scheme of the lines
 #MyFig4a<-MyFig4a + scale_color_brewer(palette = "Paired") 
 #these removes the gray background, dots, and gridlines from the plot
-MyFig6 + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
-                             panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+MyFig6<-MyFig6 + coord_cartesian(ylim = c(-20, 3000)) + scale_y_continuous(breaks=seq(0, 3000, 500))
+
+MyFig6<-MyFig6 + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
+                                    panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"),
+                                    plot.title = element_text(hjust=0.02, face="bold", size=18), legend.title=element_blank(),
+                                    #legend.text=element_text(colour="black", size = 16, face = "bold"),
+                                    #legend.position=c(.1, .6), axis.text=element_text(colour="black", size = 16),
+                                    axis.title.x=element_text(colour="black", size = 20, face = "bold"),
+                                    axis.title.y=element_text(colour="black", size = 20, face = "bold"),
+                                    #legend.key = element_blank(),
+                                    axis.text=element_text(colour="black", face="bold", size = 13),
+                                    legend.position="none")
+MyFig6
 #############################################################################################################################
 #############################################################################################################################
 
@@ -965,14 +911,28 @@ MyFig19
 
 #############################################################################################################################
 #TOTAL PRODUCTIVITY (ALL REGIONS TOGETHER)
-#############################################################################################################################
-# FigALL<-DATA
-# FigALL<-as.data.frame(tapply(FigALL$Count, FigALL$Year, sum))
-# names(FigALL)[1] <- "Publications" #need to rename the column after tapply
-# FigALL$Year<-c(1990:2014)
-# MyFigALL<-qplot(Year,Publications, data = FigALL, geom="line", main = "Total Articles, 1991-2014")
-# MyFigALL + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(), 
-#                             panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"))
+############################################################################################################################
+FigALL<-DATA
+FigALL<-filter(FigALL, Region == "LatAm")
+FigALL <- FigALL[order(FigALL$Year),] 
+FigALL<-as.data.frame(tapply(FigALL$Pubs, FigALL$Year, sum))
+names(FigALL)[1] <- "Publications" #need to rename the column after tapply
+FigALL$Year<-c(1990:2014)
+MyFigALL<-qplot(Year,Publications, data = FigALL, geom="line", main = "Total Articles, 1991-2014")
+MyFigALL<-MyFigALL + geom_line(size=1, color ="darkgreen")  
+MyFigALL<-MyFigALL + coord_cartesian(ylim = c(-20, 1000)) + scale_y_continuous(breaks=seq(0, 1000, 200))
+MyFigALL<-MyFigALL + coord_cartesian(xlim = c(1988, 2015)) + scale_x_discrete(labels=c("Avg. per yr\n1981-1990" ," ", " ", " ", "1994"," ", " ", " ", "1998"," ", " ", " ", "2002"," ", " ", " ", "2006"," ", " ", " ", "2010"," ", " ", " ", "2014"))
+MyFigALL<- MyFigALL + theme_bw()+theme(panel.border = element_blank(),
+                                     panel.grid.major = element_blank(), 
+                                     panel.grid.minor = element_blank(), axis.line = element_line(colour = "black"),
+                                     plot.title = element_text(hjust=0.5, face="bold", vjust=3, size=20), 
+                                     axis.title.x=element_text(colour="black", face="bold",size = 40, vjust=-1.5),
+                                     axis.title.y=element_text(colour="black", face="bold",size = 40, vjust=2),
+                                     plot.margin = unit(c(1,3,3,1), "cm"),   
+                                     axis.text=element_text(colour="black", size = 20,face="bold"))
+
+MyFigALL
+
 #############################################################################################################################
 #############################################################################################################################
 
@@ -1237,9 +1197,9 @@ ecuador_authors__references <- output$authors__references
 ##		not starting from scratch above:
 
 ###	Can be read back in without importing from the following three commands:
-#ecuador_references <- read.csv("output/ecuador_references.csv", as.is=TRUE)
-#ecuador_authors <- read.csv("output/ecuador_authors.csv", as.is=TRUE)
-#ecuador_authors__references <- read.csv("output/ecuador_authors__references.csv", as.is=TRUE)
+#ecuador_references <- read_csv("output/ecuador_references.csv", as.is=TRUE)
+#ecuador_authors <- read_csv("output/ecuador_authors.csv", as.is=TRUE)
+#ecuador_authors__references <- read_csv("output/ecuador_authors__references.csv", as.is=TRUE)
 
 ##	Process Brazilian records:
 brazil_references <- read_references("data/savedrecs (5).ciw", dir=FALSE, filename_root="output/brazil")
@@ -1247,9 +1207,9 @@ output <- read_authors(brazil_references, filename_root="output/brazil")
 brazil_authors <- output$authors
 brazil_authors__references <- output$authors__references
 
-#brazil_references <- read.csv("output/brazil_references.csv", as.is=TRUE)
-#brazil_authors <- read.csv("output/brazil_authors.csv", as.is=TRUE)
-#brazil_authors__references <- read.csv("output/brazil_authors__references.csv", as.is=TRUE)
+#brazil_references <- read_csv("output/brazil_references.csv", as.is=TRUE)
+#brazil_authors <- read_csv("output/brazil_authors.csv", as.is=TRUE)
+#brazil_authors__references <- read_csv("output/brazil_authors__references.csv", as.is=TRUE)
 
 ##	Calculate the percentage of author records without contact information:
 sum(brazil_authors$C1 == "" | is.na(brazil_authors$C1))/length(brazil_authors$C1)*100
@@ -1283,7 +1243,7 @@ merged_authors__references <- output$authors__references
 
 ##	And finally after scrolling through and hand-correcting any authors
 ##		from the merged list that have a high similarity:
-#merged_authors <- read.csv("merged_authors.csv", as.is=TRUE)
+#merged_authors <- read_csv("merged_authors.csv", as.is=TRUE)
 
 output <- remove_duplicates(authors=merged_authors, authors__references=merged_authors__references, filename_root="output/merged_nodupe")
 merged_authors <- output$authors
@@ -1319,7 +1279,7 @@ address_list_working <- gsub("[. ]*$", "", address_list_working)
 
 ##	Use the full list to create addresses from the C1 records:
 addresses_working <- read_addresses(data.frame("id"=address_list_working_au_id, "type"="C1", "address"=address_list_working, stringsAsFactors=FALSE), filename_root="output/merged_nodupe_addresses_C1_first1000")
-#addresses_working <- read.csv("output/merged_nodupe_addresses_C1_first1000_addresses.csv")
+#addresses_working <- read_csv("output/merged_nodupe_addresses_C1_first1000_addresses.csv")
 
 
 ##	Now we can use those addresses to plot things out:
